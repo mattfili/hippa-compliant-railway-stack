@@ -1,0 +1,42 @@
+task_assignments:
+  - task_group: "Task Group 1: FastAPI Project Initialization"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 2: Database Engine & Migrations"
+    assigned_subagent: "database-engineer"
+
+  - task_group: "Task Group 3: Configuration & Secrets Management"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 4: JWT Validation & JWKS Integration"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 5: Middleware Implementation"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 6: Authentication Endpoints"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 7: Health Check Endpoints"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 8: Error Registry & Response Format"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 9: CORS Configuration"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 10: Docker & Railway Configuration"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 11: Setup & Deployment Documentation"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 12: HIPAA Compliance Documentation"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 13: Railway Environment Templates"
+    assigned_subagent: "api-engineer"
+
+  - task_group: "Task Group 14: Strategic Test Coverage"
+    assigned_subagent: "testing-engineer"
