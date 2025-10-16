@@ -1,0 +1,99 @@
+{
+  "name": "HIPAA-Compliant RAG Template",
+  "description": "Production-ready multi-tenant RAG application with HIPAA compliance, pgvector embeddings, and audit logging",
+  "repository": "https://github.com/your-org/hipaa-compliant-railway-stack",
+  "keywords": [
+    "hipaa",
+    "rag",
+    "pgvector",
+    "multi-tenant",
+    "fastapi",
+    "postgresql",
+    "claude",
+    "bedrock",
+    "healthcare"
+  ],
+  "services": [
+    {
+      "name": "postgres",
+      "source": {
+        "image": "pgvector/pgvector:pg15"
+      },
+      "config": {
+        "POSTGRES_USER": "postgres",
+        "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD}",
+        "POSTGRES_DB": "railway"
+      }
+    },
+    {
+      "name": "backend",
+      "source": {
+        "repo": "https://github.com/your-org/hipaa-compliant-railway-stack",
+        "directory": "backend"
+      },
+      "config": {
+        "DATABASE_URL": "${{postgres.DATABASE_URL}}",
+        "ENVIRONMENT": "production",
+        "LOG_LEVEL": "INFO",
+        "ALLOWED_ORIGINS": "${ALLOWED_ORIGINS}",
+        "OIDC_ISSUER_URL": "${OIDC_ISSUER_URL}",
+        "OIDC_CLIENT_ID": "${OIDC_CLIENT_ID}",
+        "OIDC_CLIENT_SECRET": "${OIDC_CLIENT_SECRET}",
+        "AWS_REGION": "${AWS_REGION}",
+        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}"
+      },
+      "healthcheck": {
+        "path": "/api/v1/health/ready",
+        "timeout": 30
+      }
+    }
+  ],
+  "variables": [
+    {
+      "name": "POSTGRES_PASSWORD",
+      "description": "PostgreSQL password (auto-generated)",
+      "default": "${RANDOM_PASSWORD}"
+    },
+    {
+      "name": "ALLOWED_ORIGINS",
+      "description": "Comma-separated list of allowed CORS origins (e.g., https://app.example.com,https://admin.example.com)",
+      "required": true
+    },
+    {
+      "name": "OIDC_ISSUER_URL",
+      "description": "OpenID Connect issuer URL for authentication (e.g., https://cognito.amazonaws.com/us-east-1_XXXXXXXXX)",
+      "required": true
+    },
+    {
+      "name": "OIDC_CLIENT_ID",
+      "description": "OpenID Connect client ID",
+      "required": true
+    },
+    {
+      "name": "OIDC_CLIENT_SECRET",
+      "description": "OpenID Connect client secret",
+      "required": true,
+      "sensitive": true
+    },
+    {
+      "name": "AWS_REGION",
+      "description": "AWS region for Bedrock and KMS services (e.g., us-east-1)",
+      "required": true,
+      "default": "us-east-1"
+    },
+    {
+      "name": "AWS_ACCESS_KEY_ID",
+      "description": "AWS access key ID for Bedrock and KMS",
+      "required": true,
+      "sensitive": true
+    },
+    {
+      "name": "AWS_SECRET_ACCESS_KEY",
+      "description": "AWS secret access key for Bedrock and KMS",
+      "required": true,
+      "sensitive": true
+    }
+  ],
+  "instructions": "# HIPAA-Compliant RAG Template\n\n## Prerequisites\n\n1. **AWS Account** with:\n   - Amazon Bedrock enabled (Claude for LLM, Titan for embeddings)\n   - KMS for encryption\n   - S3 bucket for document storage\n\n2. **OpenID Connect Provider** (AWS Cognito, Auth0, Okta, etc.) with:\n   - OIDC/SAML authentication configured\n   - Custom claim `custom:tenant_id` for multi-tenancy\n\n3. **Railway Account** with:\n   - Pro plan (for production workloads)\n   - Business Associate Agreement (BAA) signed for HIPAA compliance\n\n## Setup Instructions\n\n1. **Deploy this template** - Railway will provision PostgreSQL and backend services\n\n2. **Configure environment variables** in Railway dashboard:\n   - Set all required variables (OIDC, AWS credentials, CORS origins)\n\n3. **Verify pgvector extension**:\n   - Open Railway PostgreSQL console\n   - Run: `SELECT * FROM pg_available_extensions WHERE name = 'vector';`\n   - If not installed, contact Railway support\n\n4. **Database migrations run automatically** on first deployment via `startup.sh`\n\n5. **Verify health checks**:\n   - Wait for deployment to complete\n   - Check: `https://<your-backend-url>/api/v1/health/ready`\n\n6. **Create your first tenant**:\n   - Use API or database console to insert tenant record\n   - System tenant (ID: `00000000-0000-0000-0000-000000000000`) is auto-created\n\n## HIPAA Compliance Notes\n\n- **BAA Required**: Ensure Railway BAA is signed before storing PHI\n- **Encryption**: Enable encryption at rest in Railway PostgreSQL settings\n- **Audit Logs**: Immutable audit logs are enabled by default\n- **Access Controls**: RLS policies enforce tenant isolation at database level\n- **Backups**: Enable Railway backups with 30+ day retention\n\n## Support\n\nFor issues or questions, see the [GitHub repository](https://github.com/your-org/hipaa-compliant-railway-stack) or Railway community forums."
+}

@@ -1,0 +1,21 @@
+task_assignments:
+  - task_group: "Task Group 1: Enhanced Base Model with Soft Deletes"
+    assigned_subagent: "database-engineer"
+
+  - task_group: "Task Group 2: Table Migrations (Migrations 2-5)"
+    assigned_subagent: "database-engineer"
+
+  - task_group: "Task Group 3: Index and RLS Migrations (Migrations 6-7)"
+    assigned_subagent: "database-engineer"
+
+  - task_group: "Task Group 4: Core Domain Models"
+    assigned_subagent: "database-engineer"
+
+  - task_group: "Task Group 5: RLS Integration Tests"
+    assigned_subagent: "testing-engineer"
+
+  - task_group: "Task Group 6: Audit Log Immutability Tests"
+    assigned_subagent: "testing-engineer"
+
+  - task_group: "Task Group 7: Railway Integration & Template Metadata"
+    assigned_subagent: "database-engineer"

@@ -179,68 +179,123 @@ black app/ tests/ && ruff check app/ tests/ && mypy app/
 
 ## Railway Deployment
 
-Deploy to Railway with one-click template deployment:
+Deploy to Railway with pgvector-enabled PostgreSQL and automated migrations.
 
-### 1. Fork Repository
+### Using Railway Template (Recommended)
 
-Fork this repository to your GitHub account for continuous deployment.
+1. **Deploy pgvector PostgreSQL template:**
+   - Visit: https://railway.com/deploy/3jJFCA
+   - Click "Deploy Now"
+   - Wait for PostgreSQL provisioning (2-5 minutes)
 
-### 2. Deploy Railway Template
+2. **Deploy this application:**
+   - Fork this repository to your GitHub account
+   - In Railway dashboard, click "New" > "GitHub Repo"
+   - Select your forked repository
+   - Choose `backend` directory as root
+   - Railway will automatically build and deploy
 
-1. Visit the Railway template link (or create new project)
-2. Click "Deploy Now"
-3. Connect your GitHub repository
-4. Railway will automatically:
-   - Provision a PostgreSQL database
-   - Build the Docker container
-   - Deploy the application
+3. **Configure Environment Variables:**
 
-### 3. Configure Environment Variables
+   In Railway dashboard, set the following required variables:
 
-In Railway dashboard, set the following environment variables:
+   ```bash
+   # Auto-provided by Railway PostgreSQL service
+   DATABASE_URL=postgresql://postgres:password@hostname:5432/railway
+
+   # Application configuration
+   ENVIRONMENT=production
+   LOG_LEVEL=INFO
+   ALLOWED_ORIGINS=https://your-frontend-domain.com,https://admin.example.com
+
+   # OIDC/SAML authentication
+   OIDC_ISSUER_URL=https://cognito-idp.us-east-1.amazonaws.com/us-east-1_XXXXXXXXX
+   OIDC_CLIENT_ID=your_production_client_id
+   OIDC_CLIENT_SECRET=your_production_client_secret
+
+   # AWS credentials for Bedrock and KMS
+   AWS_REGION=us-east-1
+   AWS_ACCESS_KEY_ID=your_aws_access_key
+   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+   ```
+
+   **Note**: `DATABASE_URL` is automatically injected by Railway when you link the PostgreSQL service.
+
+4. **Verify Deployment:**
+
+   Once deployed, verify the application is running:
+
+   ```bash
+   # Check health endpoint (when implemented)
+   curl https://your-backend-url.railway.app/api/v1/health/ready
+
+   # Check Railway logs
+   # - Look for "Database migrations completed"
+   # - Verify no startup errors
+   # - Confirm application listening on port
+   ```
+
+5. **Verify pgvector Extension:**
+
+   Follow the verification steps in [docs/RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md):
+
+   - Open Railway PostgreSQL console
+   - Run: `SELECT * FROM pg_available_extensions WHERE name = 'vector';`
+   - Verify pgvector is available and enabled
+
+### Manual Railway Setup
+
+If not using the template:
+
+1. **Create PostgreSQL service:**
+   - In Railway project, click "New" > "Database" > "PostgreSQL"
+   - Ensure pgvector extension is available (see [docs/RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md))
+
+2. **Create backend service:**
+   - Click "New" > "GitHub Repo"
+   - Select your repository
+   - Set build command: `cd backend && pip install -r requirements.txt`
+   - Set start command: `cd backend && sh startup.sh`
+
+3. **Link services:**
+   - Connect backend service to PostgreSQL service
+   - Railway will inject `DATABASE_URL` automatically
+
+4. **Configure environment variables** (see list above)
+
+### Database Migrations on Railway
+
+Migrations run automatically on deployment via `startup.sh`:
 
 ```bash
-ENVIRONMENT=production
-LOG_LEVEL=INFO
-ALLOWED_ORIGINS=https://your-frontend-domain.com
-OIDC_ISSUER_URL=https://your-idp.example.com
-OIDC_CLIENT_ID=your_production_client_id
-JWT_TENANT_CLAIM_NAME=tenant_id
-AWS_REGION=us-east-1
-AWS_SECRETS_MANAGER_SECRET_ID=hipaa-template/prod/secrets
+# startup.sh runs:
+alembic upgrade head
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-**Note**: `DATABASE_URL` is automatically injected by Railway when you link the PostgreSQL service.
+To manually trigger migrations:
+1. Open Railway service console
+2. Run: `alembic upgrade head`
 
-### 4. Configure AWS Secrets Manager
+### HIPAA Compliance Checklist
 
-Store sensitive secrets in AWS Secrets Manager:
+Before storing PHI (Protected Health Information):
 
-```bash
-# Create secret in AWS Secrets Manager
-aws secretsmanager create-secret \
-  --name hipaa-template/prod/secrets \
-  --secret-string '{"OIDC_CLIENT_SECRET":"your_secret_here"}' \
-  --region us-east-1
-```
+- [ ] Sign Railway Business Associate Agreement (BAA)
+- [ ] Enable encryption at rest on PostgreSQL (Railway settings)
+- [ ] Enable Railway Backups with 30+ day retention
+- [ ] Configure PostgreSQL tuning (see [docs/POSTGRESQL_TUNING.md](docs/POSTGRESQL_TUNING.md))
+- [ ] Verify Row-Level Security (RLS) policies enabled (via migrations)
+- [ ] Configure audit logging (see [docs/POSTGRESQL_TUNING.md](docs/POSTGRESQL_TUNING.md))
+- [ ] Test backup restoration process
+- [ ] Configure CORS origins restrictively
+- [ ] Enable TLS 1.2+ for all connections (Railway default)
 
-Grant your Railway service IAM permissions:
-1. Create IAM role for Railway service
-2. Attach policy with `secretsmanager:GetSecretValue` permission
-3. Configure Railway to assume this IAM role
+### Railway Documentation
 
-See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed instructions.
-
-### 5. Verify Deployment
-
-Check health endpoints:
-- **Liveness**: `https://your-app.railway.app/api/v1/health/live` (future)
-- **Readiness**: `https://your-app.railway.app/api/v1/health/ready` (future)
-
-View logs in Railway dashboard to confirm:
-- Database migrations ran successfully
-- Application started without errors
-- Health checks returning 200 OK
+For detailed Railway-specific setup and tuning:
+- [Railway Setup Guide](docs/RAILWAY_SETUP.md) - pgvector verification, troubleshooting, backups
+- [PostgreSQL Tuning](docs/POSTGRESQL_TUNING.md) - Performance optimization, HIPAA compliance settings
 
 ## Project Structure
 
@@ -274,6 +329,8 @@ backend/
 ├── tests/                      # Test files (future)
 ├── scripts/                    # Deployment scripts (future)
 ├── docs/                       # Additional documentation
+│   ├── RAILWAY_SETUP.md        # Railway PostgreSQL setup and verification
+│   └── POSTGRESQL_TUNING.md    # Performance tuning and HIPAA compliance
 ├── Dockerfile                  # Multi-stage production build (future)
 ├── railway.json                # Railway deployment config (future)
 ├── pyproject.toml              # Project dependencies and tool config
@@ -284,6 +341,8 @@ backend/
 
 This README provides setup and deployment overview. For detailed information, see:
 
+- **[RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md)** - Railway PostgreSQL setup, pgvector verification, troubleshooting
+- **[POSTGRESQL_TUNING.md](docs/POSTGRESQL_TUNING.md)** - Performance optimization, HIPAA compliance settings
 - **[API_ARCHITECTURE.md](docs/API_ARCHITECTURE.md)** - Extension points and architecture patterns
 - **[AUTH_CONFIGURATION.md](docs/AUTH_CONFIGURATION.md)** - Identity provider setup guides
 - **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Railway and AWS deployment details
@@ -389,6 +448,14 @@ alembic downgrade <revision_id>
 alembic upgrade head
 ```
 
+### pgvector Extension Issues
+
+See [docs/RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md) for comprehensive troubleshooting:
+- Extension not available
+- Permission errors
+- Vector query issues
+- Index creation timeouts
+
 ### Application Won't Start
 
 ```bash
@@ -434,9 +501,10 @@ curl http://localhost:8000/api/v1/health/ready
 
 For questions or issues:
 1. Check documentation in `docs/` directory
-2. Review [ERROR_CODES.md](docs/ERROR_CODES.md) for error explanations
-3. Check Railway deployment logs
-4. Review [HIPAA_READINESS.md](docs/HIPAA_READINESS.md) for compliance questions
+2. Review [RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md) for Railway-specific questions
+3. Review [ERROR_CODES.md](docs/ERROR_CODES.md) for error explanations
+4. Check Railway deployment logs
+5. Review [HIPAA_READINESS.md](docs/HIPAA_READINESS.md) for compliance questions
 
 ## License
 
