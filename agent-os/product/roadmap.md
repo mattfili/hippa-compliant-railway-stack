@@ -2,15 +2,17 @@
 
 ## Overview
 
-This roadmap outlines the development path from initial infrastructure setup to a production-ready HIPAA-compliant template. Features are ordered to build foundational capabilities first, then layer on compliance, intelligence, and developer experience features.
+This roadmap outlines the development path from initial infrastructure setup to a production-ready HIPAA-compliant **Railway template**. Features are ordered to build foundational capabilities first, then layer on compliance, intelligence, and developer experience features.
+
+**Core Philosophy**: One-click Railway deployment with zero manual infrastructure configuration. Railway template automates provisioning of AWS infrastructure (RDS, S3, VPC, KMS) via Terraform while Railway hosts the application containers. Everything is configured automatically - users only need to add OIDC credentials after deployment.
 
 ## Ordered Feature Checklist
 
 1. [x] **Backend API Scaffold with Authentication** — FastAPI application with route structure, OIDC/SAML authentication integration with MFA support, JWT token handling, and basic health check endpoints. Includes tenant context middleware that extracts and validates tenant ID from authenticated requests. `M`
 
-2. [x] **Database Schema and Multi-Tenant Data Model** — PostgreSQL schema with tenant isolation patterns, pgvector extension setup, core tables (tenants, users, documents, audit_logs), foreign key relationships, and database migrations framework. Includes indexes optimized for tenant-scoped queries. Includes Railway configuration for automated provisioning. `M`
+2. [x] **Database Schema and Multi-Tenant Data Model** — PostgreSQL schema with tenant isolation patterns, pgvector extension setup, core tables (tenants, users, documents, audit_logs), foreign key relationships, and database migrations framework. Includes indexes optimized for tenant-scoped queries. Database migrations run automatically on deployment. `M`
 
-3. [ ] **AWS Infrastructure Provisioning** — Terraform templates to create VPC with public/private subnets, RDS PostgreSQL instance with encryption at rest, S3 buckets with versioning and encryption, KMS master keys, security groups, and IAM roles. Includes Railway configuration for automated provisioning. `L`
+3. [ ] **AWS Infrastructure Provisioning** — Terraform templates to create VPC with public/private subnets, RDS PostgreSQL instance with encryption at rest, S3 buckets with versioning and encryption, KMS master keys, security groups, and IAM roles. Railway template automates Terraform execution to provision all AWS resources with zero manual AWS console work. Includes configuration for Railway application to connect to AWS services. `L`
 
 4. [ ] **Per-Tenant Encryption Key Management** — KMS key generation workflow that creates unique encryption keys for each tenant, key metadata storage, tenant-key association logic, and encryption/decryption utilities that automatically select correct key based on tenant context. Includes key rotation capability. `L`
 

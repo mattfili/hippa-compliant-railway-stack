@@ -6,18 +6,20 @@
 
 ## Overview
 
-This is a **Railway template** that provides instant deployment of a secure, HIPAA-compliant backend with multi-tenant PostgreSQL, vector search, and audit logging. Built for healthcare applications requiring rapid deployment without infrastructure complexity.
+This is a **Railway template** that provides instant deployment of a secure, HIPAA-compliant backend with AWS infrastructure (RDS PostgreSQL, S3 storage, KMS encryption) automatically provisioned via Terraform. Built for healthcare applications requiring rapid deployment without infrastructure complexity.
 
-**Deploy in under 5 minutes** - no manual configuration, no infrastructure setup, just click and deploy.
+**Deploy in under 5 minutes** - Railway template automates AWS infrastructure provisioning, no manual AWS console work required.
 
 ### What You Get
 
 When you deploy this Railway template, you automatically get:
 
-✅ **Multi-Tenant PostgreSQL** with pgvector extension
-✅ **Row-Level Security** for database-level tenant isolation
+✅ **AWS RDS PostgreSQL** with pgvector extension (via Terraform)
+✅ **Multi-Tenant Data Model** with Row-Level Security policies
 ✅ **Vector Search** ready for RAG applications (1024-dimensional embeddings)
 ✅ **Audit Logging** with immutable append-only logs
+✅ **AWS S3 Storage** for document uploads (future feature)
+✅ **AWS KMS** for per-tenant encryption keys (future feature)
 ✅ **JWT Authentication** with OIDC/SAML integration
 ✅ **Soft Deletes** for HIPAA retention requirements
 ✅ **Automated Migrations** on every deployment
@@ -25,27 +27,34 @@ When you deploy this Railway template, you automatically get:
 
 ### HIPAA Compliance Built-In
 
+- ✅ Comprehensive AWS BAA coverage (RDS, S3, KMS, Bedrock)
 - ✅ Timezone-aware timestamps for audit trails
 - ✅ Immutable audit logs (database-enforced)
 - ✅ Row-Level Security for tenant isolation
 - ✅ Soft deletes for data retention
-- ✅ Encryption key support (per-tenant KMS keys)
+- ✅ Per-tenant AWS KMS encryption keys (future feature)
 - ✅ Structured logging with sanitization
 
 ### Architecture
 
 ```
 Railway Template
-├── PostgreSQL (pgvector/pgvector:pg15)
+├── AWS RDS PostgreSQL (provisioned via Terraform)
 │   ├── Multi-tenant data model
 │   ├── Row-Level Security policies
 │   ├── HNSW vector indexes
-│   └── Automated migrations
+│   ├── Automated backups (30+ day retention)
+│   └── Encryption at rest with AWS KMS
 │
-└── FastAPI Backend
+├── AWS S3 (provisioned via Terraform, future feature)
+│   ├── Document storage with versioning
+│   └── Server-side encryption with KMS
+│
+└── FastAPI Backend (Railway-hosted)
     ├── JWT authentication
     ├── Tenant context middleware
     ├── SQLAlchemy models
+    ├── Automated migrations
     └── Health monitoring
 ```
 
@@ -58,12 +67,14 @@ Click the button and you're done:
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/template/your-template-id)
 
 Railway will automatically:
-1. Provision PostgreSQL with pgvector
-2. Deploy the backend application
-3. Run database migrations
-4. Configure health checks
+1. Execute Terraform to provision AWS RDS PostgreSQL with pgvector
+2. Execute Terraform to provision AWS S3 buckets (future feature)
+3. Execute Terraform to provision AWS KMS keys (future feature)
+4. Deploy the FastAPI backend application to Railway
+5. Run database migrations on deployment
+6. Configure health checks for monitoring
 
-**All you need**: Your OIDC/SAML provider credentials and AWS credentials (add them in Railway dashboard after deployment).
+**All you need**: AWS credentials and OIDC/SAML provider credentials (add them in Railway dashboard after deployment).
 
 ### Option 2: Deploy from Repository
 

@@ -2,7 +2,7 @@
 
 ## Pitch
 
-**HIPAA-Compliant Low-Code App Template with RAG Support** is a Railway-deployable scaffold that helps developers building healthcare data applications rapidly deploy secure, compliant, and intelligent healthcare systems by providing a production-ready, HIPAA-eligible foundation with built-in RAG capabilities, multi-tenant architecture, and low-code UI extensibility.
+**HIPAA-Compliant Low-Code App Template with RAG Support** is a one-click Railway template that helps developers building healthcare data applications rapidly deploy secure, compliant, and intelligent healthcare systems. Railway hosts the application while automatically provisioning AWS infrastructure (RDS PostgreSQL, S3 storage, KMS encryption, Bedrock AI) via Terraform - providing a production-ready, HIPAA-eligible foundation with comprehensive AWS BAA coverage, built-in RAG capabilities, multi-tenant architecture, and low-code UI extensibility.
 
 ## Users
 
@@ -51,13 +51,13 @@ Healthcare SaaS applications serve multiple healthcare organizations (tenants) w
 
 Healthcare organizations need to extract insights from vast quantities of unstructured documents (patient records, research papers, clinical guidelines), but mainstream RAG solutions often violate HIPAA by sending PHI to non-compliant third-party APIs. Building a compliant RAG pipeline requires integrating document parsing, embedding generation, vector storage, and LLM inference entirely within BAA-covered services - a complex integration challenge.
 
-**Our Solution:** Pre-integrated RAG pipeline using Amazon Bedrock (Claude + Titan embeddings), pgvector for semantic search, and secure document processing - all within HIPAA-eligible AWS services covered by Railway's BAA.
+**Our Solution:** Pre-integrated RAG pipeline using Amazon Bedrock (Claude + Titan embeddings), pgvector on AWS RDS for semantic search, and S3 for secure document storage - all within HIPAA-eligible AWS services covered by AWS BAA.
 
 ### Low-Code Tools Can't Be Used in HIPAA Environments
 
-Healthcare organizations want to empower clinical staff and administrators to customize interfaces and workflows without writing code, but mainstream low-code platforms (Retool Cloud, Airtable, etc.) cannot be used with PHI due to lack of BAA coverage. Self-hosting low-code tools requires complex VPC configuration, authentication setup, and security hardening.
+Healthcare organizations want to empower clinical staff and administrators to customize interfaces and workflows without writing code, but mainstream low-code platforms (Retool Cloud, Airtable, etc.) cannot be used with PHI due to lack of BAA coverage. Self-hosting low-code tools requires authentication setup, database connections, and security hardening that most teams lack expertise to configure safely.
 
-**Our Solution:** Pre-configured self-hosted Retool deployment within a secure VPC, with pre-built HIPAA-compliant dashboards, forms, and audit interfaces that clinical staff can safely customize.
+**Our Solution:** Pre-configured self-hosted Retool deployment within AWS VPC, automatically provisioned by Railway template, with pre-built HIPAA-compliant dashboards, forms, and audit interfaces that clinical staff can safely customize.
 
 ## Differentiators
 
@@ -79,25 +79,25 @@ Unlike choosing between rapid development (non-compliant low-code tools) and com
 
 ### Deploy in Minutes with Railway
 
-Unlike complex multi-cloud setups requiring weeks of DevOps work, our Railway template provisions the entire stack (database, storage, compute, networking) with a single click. Infrastructure as code handles all AWS resource provisioning, security groups, encryption keys, and environment configuration automatically. This results in developers focusing on product features from day one instead of fighting infrastructure battles.
+Unlike complex infrastructure setups requiring weeks of DevOps work, our Railway template provisions the entire stack (AWS RDS PostgreSQL with pgvector, AWS S3 storage, AWS VPC networking, AWS KMS encryption, Railway-hosted application) with a single click. Railway template automates Terraform execution to provision AWS infrastructure while Railway hosts your application containers. Developers only need AWS credentials and OIDC configuration after deployment. This results in developers focusing on product features from day one instead of fighting infrastructure battles.
 
 ## Key Features
 
 ### Core Features
 
-- **HIPAA-Eligible Architecture by Default:** Every component runs on BAA-covered AWS services (RDS, S3, KMS, Bedrock) deployed through Railway with signed BAA, ensuring compliance from the first deployment without manual service selection or configuration guesswork
+- **HIPAA-Eligible Architecture by Default:** Every component runs on BAA-covered AWS services (RDS PostgreSQL, S3 storage, KMS encryption, Bedrock AI, VPC networking) with comprehensive AWS BAA coverage, ensuring compliance from the first deployment without manual service selection or configuration guesswork
 
-- **Multi-Tenant Foundation with Tenant-Based Encryption:** Complete tenant isolation infrastructure including per-tenant KMS encryption keys, tenant context middleware that automatically scopes all queries, and logical data separation patterns that prevent cross-tenant data leakage
+- **Multi-Tenant Foundation with Per-Tenant Encryption:** Complete tenant isolation infrastructure including Row-Level Security policies, tenant context middleware that automatically scopes all queries, per-tenant AWS KMS encryption keys for cryptographic isolation, and logical data separation patterns that prevent cross-tenant data leakage
 
-- **Production-Ready RAG Pipeline:** End-to-end document intelligence infrastructure with PDF parsing, text extraction, Titan embedding generation, pgvector semantic search, and Claude-powered response generation - all pre-integrated and tuned for healthcare documents
+- **Production-Ready RAG Pipeline:** End-to-end document intelligence infrastructure with S3 document storage, PDF parsing, text extraction, Titan embedding generation (via Bedrock), pgvector semantic search on RDS PostgreSQL, and Claude-powered response generation - all pre-integrated and tuned for healthcare documents
 
-- **Comprehensive Audit System:** Immutable audit logs capture every data access, modification, and administrative action with user identity, timestamp, IP address, and affected resources - with pre-built compliance reporting dashboards and 6-10 year retention capabilities
+- **Comprehensive Audit System:** Immutable audit logs capture every data access, modification, and administrative action with user identity, timestamp, IP address, and affected resources - stored in RDS PostgreSQL with AWS CloudTrail for infrastructure auditing, pre-built compliance reporting dashboards and 6-10 year retention capabilities
 
-- **One-Click Railway Deployment:** Complete infrastructure provisioning via Railway template including database setup, S3 bucket creation, VPC configuration, KMS key generation, and environment variable management with zero manual AWS console work required
+- **One-Click Railway Deployment:** Complete infrastructure provisioning via Railway template including Terraform execution to create AWS resources (RDS, S3, VPC, KMS), Railway-hosted application containers, automated database migrations, and environment variable management - zero manual AWS console work required, just add AWS credentials and OIDC configuration
 
 ### Collaboration Features
 
-- **Self-Hosted Low-Code UI Layer:** Pre-configured Retool deployment running inside your VPC with sample dashboards (audit logs, patient records, document analysis) that clinical staff and administrators can safely customize without writing code
+- **Self-Hosted Low-Code UI Layer:** Pre-configured Retool deployment within AWS VPC (provisioned by Railway template) with sample dashboards (audit logs, patient records, document analysis) that clinical staff and administrators can safely customize without writing code
 
 - **Role-Based Access Control Framework:** Flexible RBAC system with predefined roles (admin, clinician, analyst, patient) and permission sets that can be extended for organization-specific workflows while maintaining audit trail of all access decisions
 
