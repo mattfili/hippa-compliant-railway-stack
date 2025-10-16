@@ -8,7 +8,7 @@ This roadmap outlines the development path from initial infrastructure setup to 
 
 1. [x] **Backend API Scaffold with Authentication** — FastAPI application with route structure, OIDC/SAML authentication integration with MFA support, JWT token handling, and basic health check endpoints. Includes tenant context middleware that extracts and validates tenant ID from authenticated requests. `M`
 
-2. [ ] **Database Schema and Multi-Tenant Data Model** — PostgreSQL schema with tenant isolation patterns, pgvector extension setup, core tables (tenants, users, documents, audit_logs), foreign key relationships, and database migrations framework. Includes indexes optimized for tenant-scoped queries. `M`
+2. [x] **Database Schema and Multi-Tenant Data Model** — PostgreSQL schema with tenant isolation patterns, pgvector extension setup, core tables (tenants, users, documents, audit_logs), foreign key relationships, and database migrations framework. Includes indexes optimized for tenant-scoped queries. Includes Railway configuration for automated provisioning. `M`
 
 3. [ ] **AWS Infrastructure Provisioning** — Terraform templates to create VPC with public/private subnets, RDS PostgreSQL instance with encryption at rest, S3 buckets with versioning and encryption, KMS master keys, security groups, and IAM roles. Includes Railway configuration for automated provisioning. `L`
 

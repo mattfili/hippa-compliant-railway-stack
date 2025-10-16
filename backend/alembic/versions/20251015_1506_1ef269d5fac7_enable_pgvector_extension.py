@@ -18,6 +18,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import text
 
 
 # revision identifiers, used by Alembic.
@@ -36,6 +37,19 @@ def upgrade() -> None:
     """
     # Enable pgvector extension (idempotent operation)
     op.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+
+    # Verify extension is available
+    connection = op.get_bind()
+    result = connection.execute(
+        text("SELECT * FROM pg_available_extensions WHERE name = 'vector'")
+    ).fetchone()
+
+    if not result:
+        raise Exception(
+            "pgvector extension not available in this PostgreSQL installation. "
+            "Please ensure Railway PostgreSQL uses pgvector/pgvector:pg15 image. "
+            "Deploy using Railway pgvector template: https://railway.com/deploy/3jJFCA"
+        )
 
 
 def downgrade() -> None:
