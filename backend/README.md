@@ -1,45 +1,117 @@
 # HIPAA-Compliant Backend API
 
-Production-ready FastAPI backend with OIDC/SAML authentication, multi-tenant context management, and HIPAA-compliant infrastructure patterns.
+**One-click Railway template** for deploying production-ready, HIPAA-compliant multi-tenant applications with vector search and audit logging.
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/template/your-template-id)
 
 ## Overview
 
-This backend API scaffold provides a secure, compliant foundation for healthcare applications deployed on Railway with AWS infrastructure. It implements authentication, tenant isolation, structured logging, and health monitoring patterns required for HIPAA compliance.
+This is a **Railway template** that provides instant deployment of a secure, HIPAA-compliant backend with multi-tenant PostgreSQL, vector search, and audit logging. Built for healthcare applications requiring rapid deployment without infrastructure complexity.
 
-### Key Features
+**Deploy in under 5 minutes** - no manual configuration, no infrastructure setup, just click and deploy.
 
-- **JWT Authentication**: Token validation with JWKS endpoint integration and automatic key caching
-- **Multi-Tenant Context**: Automatic tenant isolation extracted from JWT claims
-- **HIPAA Compliance**: Structured logging, TLS encryption, and audit event documentation
-- **Health Checks**: Kubernetes-style liveness and readiness endpoints
-- **Database Connection**: Async SQLAlchemy with connection pooling and retry logic
-- **Vector Search Ready**: PostgreSQL with pgvector extension enabled
+### What You Get
 
-## Architecture Summary
+When you deploy this Railway template, you automatically get:
+
+✅ **Multi-Tenant PostgreSQL** with pgvector extension
+✅ **Row-Level Security** for database-level tenant isolation
+✅ **Vector Search** ready for RAG applications (1024-dimensional embeddings)
+✅ **Audit Logging** with immutable append-only logs
+✅ **JWT Authentication** with OIDC/SAML integration
+✅ **Soft Deletes** for HIPAA retention requirements
+✅ **Automated Migrations** on every deployment
+✅ **Health Checks** for monitoring and alerting
+
+### HIPAA Compliance Built-In
+
+- ✅ Timezone-aware timestamps for audit trails
+- ✅ Immutable audit logs (database-enforced)
+- ✅ Row-Level Security for tenant isolation
+- ✅ Soft deletes for data retention
+- ✅ Encryption key support (per-tenant KMS keys)
+- ✅ Structured logging with sanitization
+
+### Architecture
 
 ```
-Client → [OIDC/SAML IdP] → Backend API
-                           ├── Authentication Layer (JWT validation)
-                           ├── Middleware (tenant context, logging, errors)
-                           ├── API Routes (/api/v1/auth, /api/v1/health)
-                           └── Database (PostgreSQL with pgvector)
+Railway Template
+├── PostgreSQL (pgvector/pgvector:pg15)
+│   ├── Multi-tenant data model
+│   ├── Row-Level Security policies
+│   ├── HNSW vector indexes
+│   └── Automated migrations
+│
+└── FastAPI Backend
+    ├── JWT authentication
+    ├── Tenant context middleware
+    ├── SQLAlchemy models
+    └── Health monitoring
 ```
 
-**Integrations:**
-- AWS Secrets Manager (runtime secret management)
-- AWS KMS (encryption key management - future)
-- RDS PostgreSQL (database with BAA coverage)
-- CloudWatch (centralized logging via Railway)
+## Deploy to Railway (Recommended)
 
-## Prerequisites
+### Option 1: One-Click Deploy (Fastest)
 
-Before starting, ensure you have:
+Click the button and you're done:
 
-- **Python 3.11+** installed
-- **Docker** and Docker Compose (for local PostgreSQL)
-- **Railway CLI** (for deployment): `npm install -g @railway/cli`
-- **AWS Account** with Business Associate Agreement (BAA) signed
-- **Identity Provider** (AWS Cognito, Okta, Auth0, or Azure AD) with OIDC/SAML support
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/template/your-template-id)
+
+Railway will automatically:
+1. Provision PostgreSQL with pgvector
+2. Deploy the backend application
+3. Run database migrations
+4. Configure health checks
+
+**All you need**: Your OIDC/SAML provider credentials and AWS credentials (add them in Railway dashboard after deployment).
+
+### Option 2: Deploy from Repository
+
+1. Fork this repository
+2. Connect to Railway: "New Project" → "Deploy from GitHub repo"
+3. Add environment variables (see below)
+4. Railway handles the rest automatically
+
+### Required Environment Variables
+
+After deployment, configure these in Railway dashboard:
+
+```bash
+# OIDC Authentication (required)
+OIDC_ISSUER_URL=https://your-idp.com
+OIDC_CLIENT_ID=your_client_id
+OIDC_CLIENT_SECRET=your_secret
+
+# AWS for Bedrock/KMS (required for future features)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
+
+# CORS (required)
+ALLOWED_ORIGINS=https://your-frontend.com
+
+# Optional (Railway sets these automatically)
+# DATABASE_URL=<auto-injected>
+# ENVIRONMENT=production
+# LOG_LEVEL=INFO
+```
+
+### Verify Deployment
+
+Once deployed:
+- Check health: `https://your-app.railway.app/api/v1/health/ready`
+- View logs in Railway dashboard for "Database migrations completed"
+- System tenant is automatically seeded
+
+That's it! Your HIPAA-compliant backend is live.
+
+## Prerequisites (For HIPAA Production Use)
+
+Before deploying to production:
+
+- **Railway Account** with Business Associate Agreement (BAA) signed
+- **AWS Account** with BAA for Bedrock and KMS services
+- **Identity Provider** with OIDC/SAML support (AWS Cognito, Okta, Auth0, Azure AD)
 
 ## Quickstart (Local Development)
 
@@ -177,75 +249,30 @@ mypy app/
 black app/ tests/ && ruff check app/ tests/ && mypy app/
 ```
 
-## Railway Deployment
+## Advanced Configuration (Optional)
 
-Deploy to Railway with pgvector-enabled PostgreSQL and automated migrations.
+The Railway template works out-of-the-box, but you can customize if needed:
 
-### Using Railway Template (Recommended)
+### PostgreSQL Tuning
 
-1. **Deploy pgvector PostgreSQL template:**
-   - Visit: https://railway.com/deploy/3jJFCA
-   - Click "Deploy Now"
-   - Wait for PostgreSQL provisioning (2-5 minutes)
+For production workloads, see [docs/POSTGRESQL_TUNING.md](docs/POSTGRESQL_TUNING.md) for:
+- Memory optimization by RAM tier
+- Query performance tuning
+- Vector search optimization
+- HIPAA compliance settings (WAL archiving)
 
-2. **Deploy this application:**
-   - Fork this repository to your GitHub account
-   - In Railway dashboard, click "New" > "GitHub Repo"
-   - Select your forked repository
-   - Choose `backend` directory as root
-   - Railway will automatically build and deploy
+**Note**: The template uses sensible defaults. Tuning is optional.
 
-3. **Configure Environment Variables:**
+### Troubleshooting
 
-   In Railway dashboard, set the following required variables:
+If you encounter issues, see [docs/RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md) for:
+- pgvector extension verification
+- Common deployment issues
+- Database connection troubleshooting
 
-   ```bash
-   # Auto-provided by Railway PostgreSQL service
-   DATABASE_URL=postgresql://postgres:password@hostname:5432/railway
+### Manual Deployment
 
-   # Application configuration
-   ENVIRONMENT=production
-   LOG_LEVEL=INFO
-   ALLOWED_ORIGINS=https://your-frontend-domain.com,https://admin.example.com
-
-   # OIDC/SAML authentication
-   OIDC_ISSUER_URL=https://cognito-idp.us-east-1.amazonaws.com/us-east-1_XXXXXXXXX
-   OIDC_CLIENT_ID=your_production_client_id
-   OIDC_CLIENT_SECRET=your_production_client_secret
-
-   # AWS credentials for Bedrock and KMS
-   AWS_REGION=us-east-1
-   AWS_ACCESS_KEY_ID=your_aws_access_key
-   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-   ```
-
-   **Note**: `DATABASE_URL` is automatically injected by Railway when you link the PostgreSQL service.
-
-4. **Verify Deployment:**
-
-   Once deployed, verify the application is running:
-
-   ```bash
-   # Check health endpoint (when implemented)
-   curl https://your-backend-url.railway.app/api/v1/health/ready
-
-   # Check Railway logs
-   # - Look for "Database migrations completed"
-   # - Verify no startup errors
-   # - Confirm application listening on port
-   ```
-
-5. **Verify pgvector Extension:**
-
-   Follow the verification steps in [docs/RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md):
-
-   - Open Railway PostgreSQL console
-   - Run: `SELECT * FROM pg_available_extensions WHERE name = 'vector';`
-   - Verify pgvector is available and enabled
-
-### Manual Railway Setup
-
-If not using the template:
+If you need to deploy without the Railway template:
 
 1. **Create PostgreSQL service:**
    - In Railway project, click "New" > "Database" > "PostgreSQL"

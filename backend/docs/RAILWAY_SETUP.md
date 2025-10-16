@@ -1,46 +1,69 @@
-# Railway PostgreSQL Setup Guide
+# Railway Template - What's Automated
 
-This guide provides detailed instructions for deploying and configuring PostgreSQL with pgvector extension on Railway for the HIPAA-Compliant RAG Template.
+This Railway template **automates everything**. This guide explains what happens automatically and troubleshooting if needed.
 
-## Prerequisites
+## What the Template Does Automatically
 
-- Railway account with Pro plan (recommended for production)
-- Business Associate Agreement (BAA) signed with Railway for HIPAA compliance
-- GitHub account for repository connection
+When you deploy the Railway template, it automatically:
 
-## PostgreSQL Deployment Options
+✅ **Provisions PostgreSQL 15** with pgvector extension pre-installed
+✅ **Deploys the backend** with automated Docker build
+✅ **Runs all database migrations** on startup (7 migrations)
+✅ **Seeds system tenant** with ID `00000000-0000-0000-0000-000000000000`
+✅ **Enables Row-Level Security** policies on all tables
+✅ **Creates vector indexes** for similarity search
+✅ **Configures health checks** for monitoring
+✅ **Injects DATABASE_URL** environment variable
+✅ **Enables TLS encryption** on all connections
 
-### Option 1: Using Railway pgvector Template (Recommended)
+**You only need to**: Add your OIDC and AWS credentials after deployment (in Railway dashboard).
 
-The easiest way to deploy PostgreSQL with pgvector support:
+## Prerequisites for HIPAA Production
 
-1. **Deploy the pgvector template:**
-   - Visit: https://railway.com/deploy/3jJFCA
-   - Click "Deploy Now"
-   - Select your Railway project or create a new one
-   - Wait for provisioning to complete (2-5 minutes)
+- **Railway Pro Plan** (for production resources and BAA eligibility)
+- **Business Associate Agreement (BAA)** signed with Railway
+- **OIDC/SAML Provider** (AWS Cognito, Okta, Auth0, Azure AD)
+- **AWS Account** with BAA for Bedrock/KMS services
 
-2. **Verify deployment:**
-   - Open Railway dashboard
-   - Navigate to your PostgreSQL service
-   - Check "Deployments" tab for successful deployment
+## Template Deployment (Recommended)
 
-3. **Note the connection details:**
-   - Railway automatically provides `DATABASE_URL` environment variable
-   - This will be injected into your backend service
+### One-Click Deploy
 
-### Option 2: Manual PostgreSQL Service Creation
+1. Click the "Deploy on Railway" button in README
+2. Railway automatically provisions everything (2-5 minutes)
+3. Add your credentials in Railway dashboard
+4. Done!
 
-If you need to create PostgreSQL service manually:
+### What Happens Behind the Scenes
 
-1. **Create new PostgreSQL service:**
-   - In Railway project, click "New" > "Database" > "PostgreSQL"
-   - Railway will provision PostgreSQL 15+
+The template uses `template.json` which defines:
 
-2. **Configure pgvector:**
-   - By default, Railway PostgreSQL may not include pgvector
-   - Contact Railway support to enable pgvector extension
-   - Or use custom Docker image: `pgvector/pgvector:pg15`
+```json
+{
+  "services": [
+    {
+      "name": "postgres",
+      "image": "pgvector/pgvector:pg15"  // Pre-configured with pgvector
+    },
+    {
+      "name": "backend",
+      "buildCommand": "auto-detected",   // Docker build
+      "startCommand": "sh scripts/startup.sh"  // Runs migrations + starts app
+    }
+  ]
+}
+```
+
+Railway handles:
+- Database provisioning
+- Network configuration
+- Environment variable injection
+- Health monitoring
+- Automated restarts
+
+### Manual Deployment (Not Recommended)
+
+Only use this if you cannot use the template:
 
 ## pgvector Extension Verification
 

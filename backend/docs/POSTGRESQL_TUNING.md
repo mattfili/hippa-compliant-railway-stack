@@ -1,14 +1,24 @@
-# PostgreSQL Configuration Tuning for Railway
+# PostgreSQL Tuning (Optional - Advanced Users)
 
-This guide provides production-ready PostgreSQL configuration tuning for HIPAA-compliant applications deployed on Railway.
+**The Railway template works great out-of-the-box**. This guide is for advanced users who want to optimize performance for specific workloads.
+
+## Do You Need This?
+
+**Most users: NO**. The template's defaults are production-ready.
+
+**Consider tuning if you have**:
+- High query volumes (>1000 requests/minute)
+- Large datasets (>100GB)
+- Specific performance requirements
+- Custom HIPAA audit retention policies
 
 ## Overview
 
-Railway PostgreSQL services come with default configurations suitable for general use. For production HIPAA-compliant workloads, we recommend tuning these parameters for:
+Railway PostgreSQL comes pre-configured with sensible defaults. Optional tuning areas:
 
-- **Performance:** Optimize for RAG workload (vector similarity searches, complex queries)
-- **HIPAA Compliance:** Enable WAL archiving, audit logging, connection security
-- **Reliability:** Configure backups, monitoring, connection limits
+- **Performance:** Optimize for RAG workload (vector similarity searches)
+- **HIPAA Compliance:** Custom WAL archiving, extended audit retention
+- **Reliability:** Custom backup schedules, connection limits
 
 ## Configuration Methods
 
