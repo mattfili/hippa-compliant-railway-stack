@@ -1,89 +1,132 @@
 # Railway Template - What's Automated
 
-This Railway template **automates everything**. This guide explains what happens automatically and troubleshooting if needed.
+This Railway template **automates infrastructure provisioning and application deployment**. This guide explains the Railway orchestration layer and what happens automatically during deployment.
+
+## Architecture Overview
+
+Railway serves as the **orchestrator** in this scaffold:
+- **Hosts**: Stateless FastAPI backend containers (no PHI storage)
+- **Automates**: Terraform execution to provision AWS infrastructure
+- **Connects**: Application containers to AWS VPC via secure networking
+
+AWS serves as the **data plane** where all PHI resides:
+- **RDS PostgreSQL** with pgvector (provisioned via Terraform)
+- **S3** encrypted document storage (provisioned via Terraform)
+- **KMS** per-tenant encryption keys (provisioned via Terraform)
+- **VPC** networking with security groups (provisioned via Terraform)
 
 ## What the Template Does Automatically
 
 When you deploy the Railway template, it automatically:
 
-✅ **Provisions PostgreSQL 15** with pgvector extension pre-installed
-✅ **Deploys the backend** with automated Docker build
-✅ **Runs all database migrations** on startup (7 migrations)
+### Infrastructure Provisioning (via Terraform)
+✅ **Executes Terraform** to provision AWS VPC, RDS, S3, KMS, IAM roles, security groups
+✅ **Creates VPC networking** for secure connectivity between Railway and AWS
+✅ **Provisions RDS PostgreSQL 15** with pgvector extension, Multi-AZ, encryption
+✅ **Creates S3 buckets** with encryption, versioning, bucket policies
+✅ **Generates KMS keys** master key for infrastructure (per-tenant keys added on tenant creation)
+✅ **Configures IAM roles** with least privilege for application access to RDS/S3/KMS
+✅ **Sets up security groups** restricting database access to application only
+
+### Application Deployment (Railway-hosted)
+✅ **Deploys FastAPI backend** with automated Docker build to Railway containers
+✅ **Runs database migrations** on startup (7 migrations currently)
 ✅ **Seeds system tenant** with ID `00000000-0000-0000-0000-000000000000`
 ✅ **Enables Row-Level Security** policies on all tables
-✅ **Creates vector indexes** for similarity search
-✅ **Configures health checks** for monitoring
-✅ **Injects DATABASE_URL** environment variable
-✅ **Enables TLS encryption** on all connections
+✅ **Creates vector indexes** for pgvector similarity search
+✅ **Configures health checks** for monitoring and automated restarts
+✅ **Injects environment variables** DATABASE_URL (from Terraform output), AWS credentials, OIDC config
 
-**You only need to**: Add your OIDC and AWS credentials after deployment (in Railway dashboard).
+### Security & Networking
+✅ **Enforces TLS 1.2+** encryption on all connections (RDS, S3, Bedrock)
+✅ **Configures VPC peering/PrivateLink** for private connectivity (no public internet transit)
+✅ **Restricts IAM permissions** application can only access specific RDS/S3/KMS resources
+
+**You only need to**: Add your AWS credentials (for Terraform) and OIDC credentials (for authentication) in Railway dashboard after deployment.
 
 ## Prerequisites for HIPAA Production
 
-- **Railway Pro Plan** (for production resources and BAA eligibility)
-- **Business Associate Agreement (BAA)** signed with Railway
-- **OIDC/SAML Provider** (AWS Cognito, Okta, Auth0, Azure AD)
-- **AWS Account** with BAA for Bedrock/KMS services
+- **AWS Account** with BAA signed for all services (RDS, S3, KMS, Bedrock, VPC, CloudWatch, CloudTrail)
+- **AWS Credentials** with permissions to create infrastructure (VPC, RDS, S3, KMS, IAM) - Railway needs these to run Terraform
+- **Railway Pro Plan** (for production resources and BAA eligibility - covers Railway platform only, not data services)
+- **Business Associate Agreement (BAA)** signed with Railway (covers application hosting)
+- **OIDC/SAML Provider** (AWS Cognito, Okta, Auth0, Azure AD) for authentication
+
+**Note**: AWS BAA covers data services where PHI resides (RDS, S3, KMS). Railway BAA covers application hosting (stateless containers).
 
 ## Template Deployment (Recommended)
 
 ### One-Click Deploy
 
 1. Click the "Deploy on Railway" button in README
-2. Railway automatically provisions everything (2-5 minutes)
-3. Add your credentials in Railway dashboard
-4. Done!
+2. Add AWS credentials in Railway dashboard (for Terraform execution)
+3. Add OIDC credentials in Railway dashboard (for authentication)
+4. Railway automatically provisions AWS infrastructure + deploys application (5-10 minutes)
+5. Done!
 
 ### What Happens Behind the Scenes
 
-The template uses `template.json` which defines:
+The template uses `railway.json` which defines:
 
 ```json
 {
   "services": [
     {
-      "name": "postgres",
-      "image": "pgvector/pgvector:pg15"  // Pre-configured with pgvector
+      "name": "terraform",
+      "postDeploy": "terraform init && terraform apply -auto-approve",
+      "environment": {
+        "AWS_ACCESS_KEY_ID": "$AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY": "$AWS_SECRET_ACCESS_KEY",
+        "AWS_REGION": "us-east-1"
+      }
     },
     {
       "name": "backend",
-      "buildCommand": "auto-detected",   // Docker build
-      "startCommand": "sh scripts/startup.sh"  // Runs migrations + starts app
+      "buildCommand": "docker build",
+      "startCommand": "sh scripts/startup.sh",  // Runs migrations + starts app
+      "healthcheck": "/api/v1/health/ready",
+      "environment": {
+        "DATABASE_URL": "$TERRAFORM_OUTPUT_RDS_URL",  // From Terraform
+        "S3_BUCKET": "$TERRAFORM_OUTPUT_S3_BUCKET",
+        "KMS_KEY_ID": "$TERRAFORM_OUTPUT_KMS_KEY"
+      }
     }
   ]
 }
 ```
 
-Railway handles:
-- Database provisioning
-- Network configuration
-- Environment variable injection
-- Health monitoring
-- Automated restarts
+Railway orchestrates:
+1. **Terraform Execution**: Provisions AWS VPC, RDS, S3, KMS, IAM, security groups
+2. **Application Deployment**: Builds Docker image, deploys FastAPI container
+3. **Environment Variables**: Injects Terraform outputs (RDS URL, S3 bucket) into application
+4. **Health Monitoring**: Monitors application health, restarts on failures
+5. **Network Configuration**: Configures VPC peering/PrivateLink for secure AWS connectivity
 
-### Manual Deployment (Not Recommended)
+**Railway does NOT provision data services** - it only orchestrates Terraform and hosts application containers.
 
-Only use this if you cannot use the template:
-
-## pgvector Extension Verification
+## AWS RDS pgvector Verification
 
 ### Automatic Verification (via Migration)
 
-The application includes automatic pgvector verification in the database migration:
+The application includes automatic pgvector verification in the first database migration. When Railway deploys the application, it runs `alembic upgrade head` which:
 
-```bash
-# Run migrations
-alembic upgrade head
-```
+1. Connects to AWS RDS PostgreSQL (provisioned by Terraform)
+2. Verifies pgvector extension is available
+3. Enables the extension if not already enabled
+4. Creates tables with vector columns
 
-If pgvector is not available, the migration will fail with a clear error message.
+If pgvector is not available on the AWS RDS instance, the migration will fail with a clear error message.
+
+**Note**: Terraform provisions RDS with `shared_preload_libraries = 'vector'` parameter to ensure pgvector is available.
 
 ### Manual Verification Steps
 
-1. **Open Railway PostgreSQL console:**
-   - Navigate to PostgreSQL service in Railway dashboard
-   - Click "Data" tab
-   - Click "Query" or open psql console
+1. **Connect to AWS RDS PostgreSQL:**
+   - Get RDS endpoint from Terraform outputs or Railway environment variables
+   - Use psql client or database GUI tool to connect
+   ```bash
+   psql $DATABASE_URL
+   ```
 
 2. **Check extension availability:**
    ```sql
