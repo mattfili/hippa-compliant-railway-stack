@@ -119,34 +119,39 @@ This is the **most critical** component for HIPAA compliance - enforcing that PH
 ### Object Storage
 - **AWS S3**
   - **Rationale**: HIPAA-eligible under AWS BAA with comprehensive coverage, enterprise-grade durability (99.999999999%), server-side encryption with KMS for per-tenant encryption keys, versioning for data recovery, lifecycle policies for cost optimization, access logging for audit trails
-  - **Configuration**: Provisioned automatically by Railway template via Terraform, server-side encryption with KMS (SSE-KMS), versioning enabled, bucket policies restricting access to application IAM roles only, access logging enabled to dedicated audit bucket
-  - **Template Automation**: Railway template includes Terraform modules that create S3 buckets with encryption, versioning, and access policies pre-configured
+  - **Configuration**: Provisioned automatically by Railway template via Terraform, server-side encryption with KMS (SSE-KMS), versioning enabled, bucket policies restricting access to application IAM roles only, access logging enabled to dedicated audit bucket, VPC endpoint for private access (no public internet transit)
+  - **Template Automation**: Railway template includes Terraform modules that create S3 buckets with encryption, versioning, VPC endpoint configuration, and access policies pre-configured
+  - **PHI Boundary**: Application accesses S3 via AWS SDK with IAM role credentials - Railway containers never download PHI to local filesystem
 
 ### ORM/Query Builder
 - **SQLAlchemy 2.0** (for Python/FastAPI)
   - **Rationale**: Mature ORM with async support, flexible for both ORM and raw SQL, excellent for complex queries, strong type hinting with SQLAlchemy 2.0
 
-## AI & Machine Learning
+## AI & Machine Learning (AWS BAA Boundary)
+
+All AI/ML components run within AWS's HIPAA-eligible boundary. PHI never leaves AWS services.
 
 ### Large Language Model
 - **Amazon Bedrock - Claude 3.5 Sonnet or Claude 3 Haiku**
   - **Rationale**: HIPAA-eligible under AWS BAA, no data retention by Anthropic when using Bedrock, excellent instruction following and reasoning, supports 200K context window for large documents, streaming responses
   - **Model Selection**: Sonnet for complex reasoning tasks, Haiku for faster/cheaper queries
+  - **PHI Boundary**: Application calls Bedrock API from Railway container via AWS SDK with IAM credentials - PHI in prompts stays within AWS, responses streamed back to application
 
 ### Embedding Model
 - **Amazon Bedrock - Titan Embeddings V2**
   - **Rationale**: HIPAA-eligible under AWS BAA, produces 1024-dimensional vectors suitable for healthcare text, optimized for retrieval tasks, cost-effective compared to third-party APIs
   - **Alternatives Considered**: OpenAI embeddings (not HIPAA-eligible), self-hosted models (requires GPU infrastructure)
+  - **PHI Boundary**: Document text sent to Bedrock for embedding generation stays within AWS, embeddings stored directly in RDS PostgreSQL (AWS)
 
 ### Document Processing
 - **PyPDF2** or **pdfplumber** (Python)
-  - **Rationale**: Pure Python libraries for PDF text extraction, handle most clinical document formats, no external services required
-- **pdf-parse** (Node.js)
-  - **Rationale**: Lightweight PDF parsing for JavaScript, handles standard PDF formats
+  - **Rationale**: Pure Python libraries for PDF text extraction, handle most clinical document formats, no external services required, processing happens in Railway container memory (stateless - documents not persisted locally)
+  - **Scaffold Includes**: Document processing service that downloads PDFs from S3, extracts text in memory, uploads chunks back to S3, stores metadata in RDS - zero local persistence
 
 ### Text Chunking
-- **LangChain** 
+- **LangChain**
   - **Rationale**: LangChain provides text splitters optimized for LLM context windows, handles recursive chunking with overlap for better retrieval, actively maintained
+  - **Scaffold Includes**: Chunking utilities tuned for medical documents (500-1000 tokens per chunk), overlap configuration for context preservation
 
 ## Authentication & Authorization
 
@@ -210,41 +215,11 @@ This is the **most critical** component for HIPAA compliance - enforcing that PH
 ### Code Quality Tools
 - **pre-commit hooks**: Automatically run formatters and linters before commits
 - **GitHub Actions**: CI pipeline for automated testing on pull requests
+- **Scaffold Includes**: `.github/workflows/` with test execution, Terraform validation, security checks
 
-## Deployment & Infrastructure
+---
 
-### Hosting Platform
-- **Railway**
-  - **Rationale**: Platform-as-a-Service with HIPAA BAA available, simplifies deployment vs raw AWS, handles container orchestration, provides templates for one-click provisioning, built-in secrets management, automated deployments from GitHub
-  - **What Railway Hosts**: FastAPI application containers, Retool self-hosted instance (future feature)
-  - **Configuration**: Railway template (template.json) defines application services, Terraform provisions AWS infrastructure automatically
-
-### Cloud Provider (Underlying Infrastructure)
-- **AWS (Amazon Web Services)**
-  - **Rationale**: Comprehensive HIPAA-eligible services, mature BAA program, widest selection of compliant services (RDS, S3, KMS, Bedrock, VPC), excellent documentation for compliance
-  - **Services Used**: RDS PostgreSQL (database), S3 (object storage), KMS (encryption keys), Bedrock (AI/LLM), VPC (networking), CloudWatch (logging), CloudTrail (audit trail)
-
-### Infrastructure as Code
-- **Terraform**
-  - **Rationale**: Industry-standard IaC tool for AWS resource provisioning, declarative configuration, state management for tracking resources, enables reproducible environments
-  - **Resources Managed**: VPC, subnets, security groups, RDS instances, S3 buckets, KMS keys, IAM roles
-  - **Template Automation**: Railway template triggers Terraform execution to provision all AWS infrastructure - zero manual AWS console work required
-
-### Container Runtime
-- **Docker**
-  - **Rationale**: Standardized containerization for consistent development and production environments, Railway natively supports Docker deployment
-
-### CI/CD
-- **GitHub Actions**
-  - **Rationale**: Native integration with GitHub repositories, free for public repos and generous free tier for private repos, flexible workflow configuration, supports matrix builds for testing multiple environments
-
-### Networking
-- **AWS VPC (Virtual Private Cloud)**
-  - **Rationale**: Network isolation for HIPAA compliance, private subnets for database and Retool, public subnets for application servers with restricted security groups
-  - **Configuration**: Provisioned by Terraform via Railway template, NAT Gateway for outbound internet access from private subnets, Network ACLs for additional security layer
-  - **Template Automation**: VPC, subnets, route tables, and security groups configured automatically
-
-## Third-Party Services
+## Compliance & Monitoring
 
 ### Monitoring & Logging
 - **Application Logs**: Structured logging to AWS CloudWatch Logs
@@ -333,6 +308,12 @@ Railway simplifies deployment orchestration while using AWS infrastructure for d
 
 ### Why KMS Per-Tenant Keys?
 Provides cryptographic isolation between tenants, not just logical. Enables secure tenant offboarding by destroying keys. Meets requirements of healthcare enterprises with stringent security policies.
+
+### Why Enforce PHI Boundary Between Railway and AWS?
+HIPAA compliance requires that PHI resides only within BAA-covered services. While Railway offers BAA, AWS provides more comprehensive coverage with mature compliance programs for data services (RDS, S3, KMS). By enforcing architectural separation where Railway hosts stateless application containers and AWS hosts all PHI data, we minimize compliance risk and provide clear audit boundaries. VPC networking, IAM policies, and application-level controls enforce this boundary - developers cannot accidentally store PHI in Railway containers even if bugs exist in application code.
+
+### Why Include AWS Config for Drift Detection?
+Infrastructure drift (manual AWS console changes, misconfigured resources) can violate HIPAA compliance without triggering alarms. AWS Config rules continuously monitor infrastructure state and alert on violations (unencrypted S3 buckets, overly permissive IAM policies, public RDS endpoints). This provides continuous compliance verification beyond deployment-time checks, enabling rapid remediation before audits detect violations.
 
 ## Future Considerations
 
