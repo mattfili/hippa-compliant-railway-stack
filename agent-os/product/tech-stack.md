@@ -2,9 +2,74 @@
 
 ## Overview
 
-This document outlines all technology choices for the HIPAA-Compliant Low-Code App Template with RAG Support. All selections prioritize HIPAA compliance via **Railway template deployment** with one-click provisioning, leveraging only services covered by Business Associate Agreements (BAA).
+This document outlines all technology choices for the **HIPAA-Compliant Railway + AWS Scaffold** - a production-ready application scaffold for deploying AI-enabled, HIPAA-compliant healthcare applications with low-code UI capabilities. All technology selections enforce the **Railway as Orchestrator + AWS as Data Plane** architectural pattern where:
 
-**Deployment Model**: Railway template with automated AWS infrastructure provisioning. Railway hosts the application containers while AWS provides HIPAA-eligible data services (RDS PostgreSQL, S3 storage, KMS encryption, Bedrock AI). Terraform modules provision all AWS resources automatically - zero manual AWS console configuration required.
+- **Railway** hosts stateless application containers (FastAPI backend, Retool frontend) and automates AWS infrastructure provisioning via Terraform
+- **AWS** provides all HIPAA-eligible data services (RDS PostgreSQL, S3 storage, KMS encryption, Bedrock AI, VPC networking) where PHI resides exclusively
+- **Terraform** Infrastructure as Code modules provision VPC, RDS, S3, KMS, IAM policies, security groups, and networking - included in scaffold
+- **VPC Networking** connects Railway-hosted containers to AWS data plane via VPC peering or PrivateLink (PHI never transits public internet)
+
+**Core Principle**: All PHI must reside within AWS services covered by comprehensive BAA. Railway containers are stateless and cannot store PHI locally. Scaffold enforces this boundary through networking configuration, IAM policies, and application-level controls.
+
+---
+
+## Infrastructure & Deployment
+
+### Infrastructure as Code
+- **Terraform**
+  - **Rationale**: Industry-standard IaC tool for AWS resource provisioning with declarative configuration, state management, and reproducible environments. Scaffold includes production-ready modules for all AWS resources.
+  - **Modules Included**: `vpc.tf` (VPC, subnets, NAT gateway, VPC endpoints), `rds.tf` (PostgreSQL with pgvector, Multi-AZ, encryption), `s3.tf` (encrypted buckets, versioning, lifecycle policies), `kms.tf` (master keys, per-tenant aliases), `iam.tf` (roles/policies with least privilege), `networking.tf` (security groups, VPC peering/PrivateLink), `config.tf` (AWS Config rules for drift detection)
+  - **Execution Model**: Railway template triggers `terraform apply` during deployment - zero manual AWS console work required
+
+### Cloud Provider (Data Plane)
+- **AWS (Amazon Web Services)**
+  - **Rationale**: Comprehensive HIPAA-eligible services with mature BAA program, widest selection of compliant services (RDS, S3, KMS, Bedrock, VPC), excellent compliance documentation
+  - **Services Used**: RDS PostgreSQL (database), S3 (object storage), KMS (encryption keys), Bedrock (AI/LLM), VPC (networking isolation), CloudWatch (logging/monitoring), CloudTrail (audit trail), AWS Config (drift detection), IAM (access control)
+  - **BAA Coverage**: All services used in scaffold are HIPAA-eligible with comprehensive AWS BAA coverage
+
+### Hosting Platform (Orchestrator)
+- **Railway**
+  - **Rationale**: Platform-as-a-Service simplifies deployment orchestration vs raw AWS ECS/Fargate, handles container orchestration, provides one-click template provisioning, automates Terraform execution, built-in secrets management
+  - **What Railway Hosts**: FastAPI backend containers (stateless, no PHI storage), Retool frontend containers (future feature), application deployment automation
+  - **Railway Template**: `railway.json` defines services, environment variables, and post-deploy hooks to trigger Terraform provisioning
+  - **Railway BAA**: Available on Pro plan, covers Railway platform only (not data services) - PHI must stay in AWS
+
+### Networking & PHI Boundary
+
+This is the **most critical** component for HIPAA compliance - enforcing that PHI never leaves AWS's secure boundary.
+
+- **AWS VPC (Virtual Private Cloud)**
+  - **Rationale**: Network isolation for HIPAA compliance, private subnets for RDS and Retool, public subnets for application ingress with restricted security groups
+  - **Configuration**: VPC with CIDR block, 3 availability zones, public subnets (NAT gateway, internet gateway), private subnets (RDS, Retool), route tables, network ACLs
+  - **Terraform Automation**: Complete VPC provisioned by scaffold - developers never touch AWS console networking
+
+- **VPC Peering or PrivateLink** (Railway to AWS)
+  - **Rationale**: Secure private connection between Railway-hosted containers and AWS VPC - PHI data flows never transit public internet
+  - **Options**:
+    - VPC Peering (if Railway provides VPC peering capability)
+    - PrivateLink/VPC Endpoints (if Railway connects via AWS PrivateLink)
+    - Alternatively: Encrypted TLS connections over public internet with strict IAM policies (least secure, but simplest if Railway doesn't support private networking)
+  - **Configuration**: Security groups restrict inbound traffic to RDS only from application IAM role, S3 VPC endpoints for private S3 access
+
+- **Security Groups & Network ACLs**
+  - **Rationale**: Defense-in-depth network security - security groups control instance-level traffic, network ACLs control subnet-level traffic
+  - **Configuration**:
+    - RDS security group allows PostgreSQL port only from application IAM role/IP ranges
+    - S3 VPC endpoint restricts access to application IAM role only
+    - Outbound rules block unauthorized destinations (prevent PHI exfiltration)
+  - **Terraform Automation**: All security groups and NACLs provisioned by scaffold with least-privilege rules
+
+### Container Runtime
+- **Docker**
+  - **Rationale**: Standardized containerization for consistent development and production environments, Railway natively supports Docker deployment from Dockerfile
+  - **Configuration**: Multi-stage Dockerfile included in scaffold for optimized production builds
+
+### CI/CD
+- **GitHub Actions**
+  - **Rationale**: Native integration with GitHub repositories, free for public repos and generous free tier for private repos, flexible workflow configuration
+  - **Scaffold Includes**: `.github/workflows/` with Terraform validation (`terraform fmt`, `terraform validate`, `tflint`), security checks (S3 encryption verification, IAM policy auditing), test suite execution, drift detection checks
+
+---
 
 ## Framework & Runtime
 

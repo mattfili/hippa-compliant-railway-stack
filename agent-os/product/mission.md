@@ -2,7 +2,7 @@
 
 ## Pitch
 
-**HIPAA-Compliant Low-Code App Template with RAG Support** is a one-click Railway template that helps developers building healthcare data applications rapidly deploy secure, compliant, and intelligent healthcare systems. Railway hosts the application while automatically provisioning AWS infrastructure (RDS PostgreSQL, S3 storage, KMS encryption, Bedrock AI) via Terraform - providing a production-ready, HIPAA-eligible foundation with comprehensive AWS BAA coverage, built-in RAG capabilities, multi-tenant architecture, and low-code UI extensibility.
+**HIPAA-Compliant Railway + AWS Scaffold** is a production-ready application scaffold that enables developers to rapidly deploy AI-enabled, HIPAA-compliant healthcare applications with low-code UI capabilities through a one-click Railway template. Railway orchestrates deployment and hosts application containers while automatically provisioning compliant AWS infrastructure (RDS PostgreSQL with pgvector, S3 encrypted storage, KMS per-tenant encryption, VPC networking) via Terraform. All PHI resides exclusively within AWS's HIPAA-eligible boundary under comprehensive BAA coverage, while developers build features on top of a secure, multi-tenant foundation with built-in RAG capabilities, immutable audit logging, and Retool-based low-code UI extensibility.
 
 ## Users
 
@@ -18,94 +18,112 @@
 **Sarah Chen, Full-Stack Developer** (28-35)
 - **Role:** Lead Engineer at a healthcare startup building a patient engagement platform
 - **Context:** Small team (3-5 developers) with tight deadlines and limited DevOps resources
-- **Pain Points:** Spent 6+ months researching HIPAA requirements, unsure if architecture is truly compliant, struggling to integrate LLM capabilities securely, overwhelmed by encryption key management complexity
-- **Goals:** Deploy a compliant MVP in weeks not months, focus on product features rather than compliance infrastructure, sleep well knowing the foundation is secure
+- **Pain Points:** Spent 6+ months researching HIPAA requirements, unsure if architecture is truly compliant, struggling to integrate LLM capabilities securely, overwhelmed by VPC networking and IAM policy complexity, can't figure out how to wire Railway app to AWS data services
+- **Goals:** Start from a working scaffold that handles infrastructure provisioning, focus on product features rather than compliance plumbing, sleep well knowing PHI stays within AWS BAA boundary
 
 **Marcus Rodriguez, Healthcare IT Architect** (35-45)
 - **Role:** Senior Solutions Architect at a regional hospital system
 - **Context:** Managing multiple internal applications, responsible for compliance audits, working with offshore development teams
-- **Pain Points:** Each new application requires rebuilding compliance infrastructure from scratch, inconsistent security patterns across projects, difficult to maintain audit trails, expensive to hire specialized HIPAA expertise
-- **Goals:** Standardize on a compliant architecture across all projects, reduce time-to-market for internal tools, pass audits with confidence, enable less experienced developers to build compliant apps
+- **Pain Points:** Each new application requires rebuilding VPC networking, IAM policies, and encryption architecture from scratch, inconsistent security patterns across projects, difficult to maintain audit trails, expensive to hire specialized AWS + HIPAA expertise, struggle to enforce PHI boundary between app and data layers
+- **Goals:** Standardize on a reference scaffold with proven compliance patterns, reduce time-to-market for internal tools from months to weeks, pass audits with confidence by starting from audited infrastructure, enable less experienced developers to build compliant apps without deep AWS expertise
 
 **Dr. Priya Patel, Clinical Informatics Lead** (40-50)
 - **Role:** Physician and healthcare data analyst at a research institution
-- **Context:** Building tools for clinical research with limited technical staff, needs to process medical documents and extract insights
-- **Pain Points:** Can't use mainstream cloud AI services due to BAA requirements, manual document review is time-consuming, existing EMR systems don't support custom workflows, compliance blocks innovation
-- **Goals:** Build custom research tools quickly, leverage AI for document analysis while maintaining compliance, empower clinical staff to customize interfaces without engineering help
+- **Context:** Building tools for clinical research with limited technical staff, needs to process medical documents and extract insights with AI
+- **Pain Points:** Can't use mainstream cloud AI services due to BAA requirements, manual document review is time-consuming, existing EMR systems don't support custom workflows, no time to learn Terraform or AWS networking, compliance blocks innovation
+- **Goals:** Deploy a working AI-enabled application from a scaffold in hours not months, leverage Bedrock for document analysis while maintaining compliance, empower clinical staff to customize Retool interfaces without writing code or touching infrastructure
 
 ## The Problem
 
-### Compliance Complexity Blocks Healthcare Innovation
+### AWS Infrastructure Provisioning is Overwhelming for Healthcare Apps
 
-Building HIPAA-compliant applications from scratch requires 6-12 months of specialized infrastructure work before developers can focus on product features. Teams must navigate complex regulations around encryption (TLS 1.2+, AES-256), audit logging (immutable, 6-10 year retention), access controls (MFA, RBAC), and Business Associate Agreements with cloud providers. This complexity creates a massive barrier to entry that prevents talented developers from building innovative healthcare solutions.
+Building HIPAA-compliant infrastructure on AWS requires deep expertise in VPC networking, IAM policies, KMS encryption, RDS configuration, S3 bucket policies, security groups, and VPC peering/PrivateLink. Teams spend 6-12 months learning Terraform, debugging networking issues, and navigating AWS's 200+ services to identify which are HIPAA-eligible. Even experienced DevOps engineers struggle to wire together compliant infrastructure that enforces the PHI boundary while maintaining least-privilege access controls.
 
-**Our Solution:** Provide a production-ready, fully configured HIPAA-eligible scaffold that handles all compliance infrastructure out-of-the-box, reducing time-to-compliant-deployment from months to hours.
+**Our Solution:** Production-ready Terraform modules that provision all required AWS infrastructure (VPC, RDS with pgvector, encrypted S3, KMS keys, IAM roles, VPC networking) automatically via Railway template deployment. Start building features on day one instead of spending months on infrastructure.
 
-### Multi-Tenant Healthcare Apps Require Sophisticated Isolation
+### Enforcing PHI Boundary Between App and Data Layers is Complex
 
-Healthcare SaaS applications serve multiple healthcare organizations (tenants) with strict requirements for data isolation. Simply separating data by tenant ID is insufficient - each tenant's data must be encrypted with unique keys, access must be strictly controlled, and audit trails must prove no cross-tenant data leakage. Building this infrastructure requires deep expertise in key management, encryption at rest, and tenant-aware middleware.
+Healthcare applications must guarantee that PHI never leaves AWS's HIPAA-eligible boundary, even when application containers run on external platforms like Railway. This requires sophisticated networking (VPC peering, PrivateLink, security groups), IAM policies scoped to specific resources, KMS envelope encryption, and continuous drift detection to catch misconfigurations. Teams struggle to implement these controls correctly, risking BAA violations and audit failures.
 
-**Our Solution:** Built-in multi-tenant architecture with per-tenant KMS encryption keys, tenant context middleware, and logical data isolation patterns that ensure compliance and security by default.
+**Our Solution:** Architecture-enforced PHI boundary where Railway hosts stateless application containers while all PHI resides exclusively in AWS (RDS, S3, KMS). Scaffold includes VPC networking configuration, IAM roles with least privilege, and AWS Config rules for drift detection. Developers cannot accidentally violate the boundary.
 
-### Healthcare Document Processing Lacks Secure RAG Infrastructure
+### Multi-Tenant Apps Need Per-Tenant Encryption + Isolation
 
-Healthcare organizations need to extract insights from vast quantities of unstructured documents (patient records, research papers, clinical guidelines), but mainstream RAG solutions often violate HIPAA by sending PHI to non-compliant third-party APIs. Building a compliant RAG pipeline requires integrating document parsing, embedding generation, vector storage, and LLM inference entirely within BAA-covered services - a complex integration challenge.
+Healthcare SaaS applications serve multiple healthcare organizations with strict requirements for cryptographic isolation. Simply separating data by tenant ID is insufficient - each tenant's data must be encrypted with unique AWS KMS keys, tenant context must be enforced in middleware, database Row-Level Security policies must prevent cross-tenant queries, and audit trails must prove no data leakage. Building this infrastructure requires expertise in KMS envelope encryption, SQLAlchemy middleware, and PostgreSQL RLS.
 
-**Our Solution:** Pre-integrated RAG pipeline using Amazon Bedrock (Claude + Titan embeddings), pgvector on AWS RDS for semantic search, and S3 for secure document storage - all within HIPAA-eligible AWS services covered by AWS BAA.
+**Our Solution:** Scaffold includes complete multi-tenant architecture with per-tenant KMS keys, tenant context middleware that enforces `tenant_id` filtering, Row-Level Security policies on all tables, and immutable audit logs that capture every data access with tenant context. Tenant isolation is enforced at multiple layers (application, database, encryption).
 
-### Low-Code Tools Can't Be Used in HIPAA Environments
+### AI-Enabled Healthcare Apps Lack Compliant RAG Scaffolds
 
-Healthcare organizations want to empower clinical staff and administrators to customize interfaces and workflows without writing code, but mainstream low-code platforms (Retool Cloud, Airtable, etc.) cannot be used with PHI due to lack of BAA coverage. Self-hosting low-code tools requires authentication setup, database connections, and security hardening that most teams lack expertise to configure safely.
+Healthcare organizations need to extract insights from medical documents using AI, but mainstream RAG solutions violate HIPAA by sending PHI to non-compliant APIs (OpenAI, Pinecone). Building a compliant RAG pipeline requires integrating AWS Bedrock (Claude + Titan embeddings), pgvector on RDS for semantic search, S3 for document storage, and securing all data flows within AWS's HIPAA boundary. Teams spend months debugging embedding pipelines, vector search performance, and prompt engineering.
 
-**Our Solution:** Pre-configured self-hosted Retool deployment within AWS VPC, automatically provisioned by Railway template, with pre-built HIPAA-compliant dashboards, forms, and audit interfaces that clinical staff can safely customize.
+**Our Solution:** Complete RAG scaffold with S3 document ingestion, PDF parsing, Titan Embeddings via Bedrock, pgvector semantic search on RDS PostgreSQL, and Claude-powered response generation. All components run within AWS BAA coverage with PHI never leaving the secure boundary. Developers extend the scaffold instead of building from scratch.
+
+### Low-Code UI Requires Self-Hosting in Secure VPC
+
+Healthcare organizations want to empower clinical staff to customize interfaces without code, but Retool Cloud cannot be used with PHI due to lack of BAA. Self-hosting Retool in AWS VPC requires configuring networking, database connections, authentication, and security hardening that most teams lack expertise to implement safely. Teams either skip low-code capabilities or spend weeks configuring Retool infrastructure.
+
+**Our Solution:** Scaffold includes Retool deployment configuration within AWS VPC (automatically provisioned by Railway template) with pre-built dashboards for audit logs, patient records, and document analysis. Clinical staff can customize interfaces via drag-and-drop while all data stays within AWS BAA boundary.
 
 ## Differentiators
 
-### Compliance-First Architecture, Not Bolt-On Security
+### Production-Ready Scaffold, Not Tutorial Code
 
-Unlike generic full-stack templates that add "security features" as an afterthought, our architecture is designed from the ground up for HIPAA compliance. Every component (storage, compute, networking, authentication) uses only BAA-covered services. Data encryption, audit logging, and access controls are built into the foundation, not added later. This results in faster audits, reduced compliance risk, and confidence that your application meets regulatory requirements.
+Unlike basic tutorials or proof-of-concept demos, this scaffold provides production-grade infrastructure code (Terraform modules), application code (FastAPI with tenant middleware, SQLAlchemy models with RLS), and compliance guardrails (AWS Config rules, immutable audit logs, PHI boundary enforcement). The scaffold is designed to be extended, not rewritten. Developers clone the repo, deploy via Railway template, and start building features on top of a proven foundation instead of spending 6 months building infrastructure from scratch.
 
-### Production-Ready RAG for Healthcare Documents
+### Railway Orchestrator + AWS Data Plane Architecture
 
-Unlike basic RAG tutorials or demos, our template provides a production-grade document processing pipeline specifically designed for healthcare use cases. It handles PDF parsing, chunking strategies optimized for medical documents, semantic search tuned for clinical terminology, and PHI scrubbing in responses. This results in developers launching intelligent document analysis features in days instead of spending months building and debugging a RAG pipeline.
+Unlike monolithic cloud deployments where app and data live in the same environment, this scaffold enforces separation between orchestration (Railway) and data plane (AWS). Railway hosts stateless application containers and automates Terraform execution for infrastructure provisioning, while all PHI resides exclusively within AWS's HIPAA-eligible boundary (RDS, S3, KMS). This architecture prevents accidental PHI leakage to non-compliant services while simplifying deployment orchestration.
 
-### True Multi-Tenant with Per-Tenant Encryption
+### Infrastructure as Code with Compliance Guardrails
 
-Unlike single-tenant applications or simple row-level security, our template implements sophisticated per-tenant encryption using AWS KMS with individual keys for each tenant. This provides cryptographic isolation between tenants, not just logical separation. This results in bank-grade security that satisfies the most stringent healthcare customer requirements and enables compliance with data residency regulations.
+Unlike manual AWS console clicking or ad-hoc scripts, this scaffold includes production-ready Terraform modules that provision VPC networking, RDS PostgreSQL with pgvector, encrypted S3 buckets, KMS keys, IAM roles with least privilege, and VPC peering/PrivateLink for secure connectivity. AWS Config rules detect drift from compliant configurations (e.g., unencrypted S3 buckets, overly permissive IAM policies). Infrastructure changes are code-reviewed, version-controlled, and automatically tested in CI.
 
-### Low-Code Extension Without Compliance Compromises
+### Multi-Layer Tenant Isolation (App + DB + Encryption)
 
-Unlike choosing between rapid development (non-compliant low-code tools) and compliance (traditional coding), our template provides both through self-hosted Retool within your secure infrastructure. Clinical staff can customize dashboards and workflows while all data stays within your BAA-covered environment. This results in faster iteration cycles and reduced engineering bottlenecks without sacrificing compliance.
+Unlike simple row-level filtering, this scaffold enforces tenant isolation at three layers: application middleware validates tenant context from JWT and injects `tenant_id` filters, PostgreSQL Row-Level Security policies block cross-tenant queries at the database level, and AWS KMS per-tenant encryption keys provide cryptographic isolation. Even if application bugs allow cross-tenant queries, encrypted data remains unreadable without the correct tenant's KMS key.
 
-### Deploy in Minutes with Railway
+### Complete AI/RAG Scaffold Within AWS BAA Boundary
 
-Unlike complex infrastructure setups requiring weeks of DevOps work, our Railway template provisions the entire stack (AWS RDS PostgreSQL with pgvector, AWS S3 storage, AWS VPC networking, AWS KMS encryption, Railway-hosted application) with a single click. Railway template automates Terraform execution to provision AWS infrastructure while Railway hosts your application containers. Developers only need AWS credentials and OIDC configuration after deployment. This results in developers focusing on product features from day one instead of fighting infrastructure battles.
+Unlike generic LangChain examples that use OpenAI or Pinecone (non-HIPAA), this scaffold provides end-to-end RAG pipeline using only AWS BAA-covered services: S3 for document storage, Bedrock Titan Embeddings for vector generation, RDS pgvector for semantic search, and Bedrock Claude for response generation. All data flows remain within AWS's secure boundary. Developers extend the scaffold with domain-specific prompt engineering and chunking strategies instead of building infrastructure from scratch.
+
+### Low-Code UI in Secure VPC (Retool Self-Hosted)
+
+Unlike Retool Cloud (no BAA), this scaffold includes configuration for self-hosted Retool deployment within AWS VPC, automatically provisioned by Railway template. Retool connects to RDS PostgreSQL via private networking (no public endpoints) and inherits tenant context from JWT. Clinical staff customize audit dashboards, patient record forms, and document analysis interfaces via drag-and-drop without writing code or touching infrastructure.
 
 ## Key Features
 
-### Core Features
+### Infrastructure & Deployment Scaffold
 
-- **HIPAA-Eligible Architecture by Default:** Every component runs on BAA-covered AWS services (RDS PostgreSQL, S3 storage, KMS encryption, Bedrock AI, VPC networking) with comprehensive AWS BAA coverage, ensuring compliance from the first deployment without manual service selection or configuration guesswork
+- **Terraform Modules for AWS Infrastructure:** Production-ready IaC modules provision VPC (public/private subnets, NAT gateway, VPC endpoints), RDS PostgreSQL 15 with pgvector extension (encrypted, Multi-AZ, automated backups), S3 buckets (encrypted, versioned, lifecycle policies), KMS master keys + per-tenant aliases, IAM roles/policies (least privilege, scoped to app resources), security groups and network ACLs for PHI boundary enforcement
 
-- **Multi-Tenant Foundation with Per-Tenant Encryption:** Complete tenant isolation infrastructure including Row-Level Security policies, tenant context middleware that automatically scopes all queries, per-tenant AWS KMS encryption keys for cryptographic isolation, and logical data separation patterns that prevent cross-tenant data leakage
+- **Railway Template with IaC Automation:** Railway template (`railway.json`) defines application services and triggers Terraform provisioning during deployment. One-click deployment provisions all AWS infrastructure, deploys application containers to Railway, runs database migrations, and wires environment variables. Developers provide AWS credentials and OIDC config only - zero manual AWS console work required
 
-- **Production-Ready RAG Pipeline:** End-to-end document intelligence infrastructure with S3 document storage, PDF parsing, text extraction, Titan embedding generation (via Bedrock), pgvector semantic search on RDS PostgreSQL, and Claude-powered response generation - all pre-integrated and tuned for healthcare documents
+- **VPC Networking for PHI Boundary:** Scaffold includes VPC peering or PrivateLink configuration to connect Railway-hosted application to AWS VPC securely. All PHI data flows traverse private connections (no public internet transit). Security groups restrict inbound/outbound traffic to authorized sources only. Architecture enforces that Railway containers never store PHI locally
 
-- **Comprehensive Audit System:** Immutable audit logs capture every data access, modification, and administrative action with user identity, timestamp, IP address, and affected resources - stored in RDS PostgreSQL with AWS CloudTrail for infrastructure auditing, pre-built compliance reporting dashboards and 6-10 year retention capabilities
+- **AWS Config Rules for Drift Detection:** Automated compliance checks detect misconfigurations that violate HIPAA invariants (unencrypted S3 buckets, overly permissive IAM policies, public RDS endpoints, disabled CloudTrail). Config rules trigger alerts on drift, enabling rapid remediation before audits
 
-- **One-Click Railway Deployment:** Complete infrastructure provisioning via Railway template including Terraform execution to create AWS resources (RDS, S3, VPC, KMS), Railway-hosted application containers, automated database migrations, and environment variable management - zero manual AWS console work required, just add AWS credentials and OIDC configuration
+### Application Scaffold
 
-### Collaboration Features
+- **Multi-Tenant Foundation with Triple Isolation:** Tenant isolation enforced at three layers: FastAPI middleware extracts tenant context from JWT and injects `tenant_id` filters into all queries, PostgreSQL Row-Level Security policies block cross-tenant access at database level, AWS KMS per-tenant encryption keys provide cryptographic isolation (even if app bugs allow cross-tenant queries, data remains unreadable without correct key)
 
-- **Self-Hosted Low-Code UI Layer:** Pre-configured Retool deployment within AWS VPC (provisioned by Railway template) with sample dashboards (audit logs, patient records, document analysis) that clinical staff and administrators can safely customize without writing code
+- **Complete RAG Pipeline (AWS BAA Only):** End-to-end document intelligence scaffold using S3 for encrypted document storage, Bedrock Titan Embeddings for vector generation, RDS pgvector for semantic search, Bedrock Claude for response generation. All components run within AWS HIPAA boundary. Scaffold includes PDF parsing, text chunking, embedding storage, similarity search queries, and prompt construction - developers extend with domain-specific logic
 
-- **Role-Based Access Control Framework:** Flexible RBAC system with predefined roles (admin, clinician, analyst, patient) and permission sets that can be extended for organization-specific workflows while maintaining audit trail of all access decisions
+- **Immutable Audit Logging System:** Append-only audit log table (PostgreSQL) captures every CRUD operation, authentication event, document access, and administrative action with user ID, tenant ID, timestamp, IP address, action type, and affected resource IDs. Database triggers prevent UPDATE/DELETE on audit logs. AWS CloudTrail audits infrastructure changes (IAM, KMS, S3 bucket policies)
 
-- **Tenant Management Dashboard:** Administrative interface for onboarding new healthcare organizations as tenants, provisioning encryption keys, configuring access policies, and monitoring tenant-level usage and compliance metrics
+- **Authentication & Authorization Scaffold:** OIDC/SAML integration with JWT validation, tenant context extraction from JWT claims, role-based access control with predefined roles (admin, clinician, analyst, patient), permission checks via policy engine (Casbin), MFA enforcement at IdP level
 
-### Advanced Features
+### Low-Code UI Scaffold
 
-- **Semantic Document Search Across Healthcare Records:** Vector similarity search using pgvector enables natural language queries across medical documents ("find all cardiology consult notes mentioning arrhythmia") with results ranked by semantic relevance rather than keyword matching
+- **Retool Self-Hosted in AWS VPC:** Configuration for Retool deployment within private AWS VPC subnet (auto-provisioned by Railway template), connected to RDS PostgreSQL via VPC endpoint (no public internet), authenticated via OIDC/JWT with tenant context inheritance, sample dashboards included (audit log viewer, patient record forms, document analysis UI) that clinical staff customize via drag-and-drop
+
+- **Pre-Built Compliance Dashboards:** Retool templates for audit log filtering/export (searchable by tenant, user, date range, action type), tenant management (onboard new orgs, view usage metrics, manage encryption keys), user administration (assign roles, review permissions), document library (upload, search, view processing status)
+
+### Extensibility & Developer Features
+
+- **Scaffold Designed for Extension:** FastAPI route structure with clear separation of concerns (routes, services, models, middleware), SQLAlchemy models with documented relationships and constraints, utility modules for common tasks (KMS encryption, S3 upload, audit logging), comprehensive inline documentation explaining design decisions and HIPAA requirements
+
+- **Testing Scaffold with Compliance Checks:** Unit tests for tenant isolation (attempt cross-tenant access, verify failure), encryption (verify KMS key usage, test envelope encryption), audit logs (verify immutability, test trigger enforcement), integration tests for API endpoints with test tenant data, security tests simulating PHI leakage scenarios
 
 - **PHI Scrubbing and De-Identification Utilities:** Built-in tools for detecting and redacting Protected Health Information in documents and LLM responses using pattern matching and NLP, enabling safe data sharing with researchers or third parties
 
@@ -119,9 +137,9 @@ Unlike complex infrastructure setups requiring weeks of DevOps work, our Railway
 
 ### Developer Adoption and Velocity
 
-- **Time to First Compliant Deployment:** Target < 1 hour from template initialization to running HIPAA-eligible application (baseline: 6-12 months building from scratch)
-- **Active Template Users:** Number of developers/teams deploying applications using this template (target: 100+ teams in year one)
-- **Feature Development Speed:** Percentage increase in feature velocity after moving to template vs. building compliance infrastructure manually (target: 5x faster)
+- **Time to First Compliant Deployment:** Target < 1 hour from Railway template deployment to running HIPAA-eligible scaffold with AWS infrastructure provisioned (baseline: 6-12 months building from scratch)
+- **Active Scaffold Deployments:** Number of developers/teams deploying applications using this scaffold (target: 100+ teams in year one)
+- **Feature Development Speed:** Percentage increase in feature velocity after starting from scaffold vs. building compliance infrastructure manually (target: 5x faster - spend 80% of time on product features instead of 80% on infrastructure)
 
 ### Compliance and Security
 
