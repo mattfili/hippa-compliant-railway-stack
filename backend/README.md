@@ -1,62 +1,110 @@
-# HIPAA-Compliant Backend API
+# HIPAA-Compliant Railway + AWS Scaffold
 
-**One-click Railway template** for deploying production-ready, HIPAA-compliant multi-tenant applications with vector search and audit logging.
+**Production-ready application scaffold** for deploying AI-enabled, HIPAA-compliant healthcare applications via one-click Railway template. Railway orchestrates deployment while Terraform provisions AWS infrastructure (VPC, RDS PostgreSQL, S3 storage, KMS encryption).
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/template/your-template-id)
 
 ## Overview
 
-This is a **Railway template** that provides instant deployment of a secure, HIPAA-compliant backend with AWS infrastructure (RDS PostgreSQL, S3 storage, KMS encryption) automatically provisioned via Terraform. Built for healthcare applications requiring rapid deployment without infrastructure complexity.
+This is an **application scaffold** deployable via Railway template that enforces the **Railway as Orchestrator + AWS as Data Plane** architectural pattern:
 
-**Deploy in under 5 minutes** - Railway template automates AWS infrastructure provisioning, no manual AWS console work required.
+- **Railway** hosts stateless application containers (FastAPI backend) and automates AWS infrastructure provisioning via Terraform
+- **AWS** provides all HIPAA-eligible data services (RDS PostgreSQL, S3 storage, KMS encryption, Bedrock AI) where PHI resides exclusively
+- **Terraform** Infrastructure as Code modules (included) provision VPC, RDS, S3, KMS, IAM, security groups, VPC networking
+- **VPC Networking** connects Railway-hosted containers to AWS VPC securely (PHI never transits public internet)
 
-### What You Get
+**Developers clone this scaffold and extend it** for their healthcare application - it's a starting point with infrastructure, authentication, multi-tenant data model, and RAG pipeline already implemented.
 
-When you deploy this Railway template, you automatically get:
+**Deploy in under 5 minutes** - Railway template automates Terraform execution to provision AWS infrastructure, no manual AWS console work required.
 
-✅ **AWS RDS PostgreSQL** with pgvector extension (via Terraform)
-✅ **Multi-Tenant Data Model** with Row-Level Security policies
-✅ **Vector Search** ready for RAG applications (1024-dimensional embeddings)
-✅ **Audit Logging** with immutable append-only logs
-✅ **AWS S3 Storage** for document uploads (future feature)
-✅ **AWS KMS** for per-tenant encryption keys (future feature)
-✅ **JWT Authentication** with OIDC/SAML integration
+### What You Get (Scaffold Includes)
+
+When you deploy this scaffold via Railway template, you automatically get:
+
+**Infrastructure Scaffold (Terraform):**
+✅ **AWS VPC** with public/private subnets, security groups, VPC endpoints (via Terraform)
+✅ **AWS RDS PostgreSQL** with pgvector extension, Multi-AZ, encrypted (via Terraform)
+✅ **AWS S3 Buckets** for document storage, encrypted, versioned (via Terraform, future feature)
+✅ **AWS KMS Keys** master key + per-tenant aliases (via Terraform, future feature)
+✅ **IAM Roles & Policies** with least privilege for application (via Terraform)
+✅ **VPC Networking** security groups, VPC peering/PrivateLink config for Railway connectivity
+
+**Application Scaffold (FastAPI):**
+✅ **Multi-Tenant Data Model** with Row-Level Security policies on all tables
+✅ **Tenant Context Middleware** extracts tenant ID from JWT and enforces filtering
+✅ **JWT Authentication** with OIDC/SAML integration (configurable IdP)
+✅ **Vector Search** ready for RAG with pgvector (1024-dimensional embeddings)
+✅ **Audit Logging** immutable append-only logs with database triggers
 ✅ **Soft Deletes** for HIPAA retention requirements
-✅ **Automated Migrations** on every deployment
+✅ **Automated Migrations** on every deployment (Alembic)
 ✅ **Health Checks** for monitoring and alerting
 
 ### HIPAA Compliance Built-In
 
-- ✅ Comprehensive AWS BAA coverage (RDS, S3, KMS, Bedrock)
-- ✅ Timezone-aware timestamps for audit trails
-- ✅ Immutable audit logs (database-enforced)
-- ✅ Row-Level Security for tenant isolation
-- ✅ Soft deletes for data retention
-- ✅ Per-tenant AWS KMS encryption keys (future feature)
-- ✅ Structured logging with sanitization
+- ✅ **PHI Boundary Enforced**: All PHI resides in AWS (RDS, S3, KMS) - Railway containers never store PHI locally
+- ✅ **Comprehensive AWS BAA Coverage**: RDS, S3, KMS, Bedrock all covered by AWS BAA
+- ✅ **VPC Networking**: Private connectivity between Railway app and AWS services (no public internet transit)
+- ✅ **Row-Level Security**: PostgreSQL RLS policies block cross-tenant queries at database level
+- ✅ **Per-Tenant Encryption**: AWS KMS keys provide cryptographic isolation between tenants (future feature)
+- ✅ **Immutable Audit Logs**: Database triggers prevent UPDATE/DELETE on audit_logs table
+- ✅ **AWS Config Rules**: Drift detection for unencrypted resources, overly permissive IAM (future feature)
+- ✅ **IAM Least Privilege**: Application IAM role scoped to specific resources only
 
 ### Architecture
 
 ```
-Railway Template
-├── AWS RDS PostgreSQL (provisioned via Terraform)
-│   ├── Multi-tenant data model
-│   ├── Row-Level Security policies
-│   ├── HNSW vector indexes
-│   ├── Automated backups (30+ day retention)
-│   └── Encryption at rest with AWS KMS
-│
-├── AWS S3 (provisioned via Terraform, future feature)
-│   ├── Document storage with versioning
-│   └── Server-side encryption with KMS
-│
-└── FastAPI Backend (Railway-hosted)
-    ├── JWT authentication
-    ├── Tenant context middleware
-    ├── SQLAlchemy models
-    ├── Automated migrations
-    └── Health monitoring
+┌─────────────────────────────────────────────────────────────────┐
+│                    Railway (Orchestrator)                        │
+├─────────────────────────────────────────────────────────────────┤
+│  • Hosts stateless application containers (FastAPI)             │
+│  • Automates Terraform execution for AWS provisioning           │
+│  • No PHI storage - containers are ephemeral                    │
+│                                                                   │
+│  ┌────────────────────────────────────────────────┐             │
+│  │ FastAPI Backend Container                      │             │
+│  │  ├── JWT authentication + tenant middleware    │             │
+│  │  ├── SQLAlchemy models + Alembic migrations    │             │
+│  │  ├── API routes (/ingest, /query, /audit)     │             │
+│  │  └── Connects to AWS via IAM role + VPC       │             │
+│  └────────────────────────────────────────────────┘             │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            │ VPC Peering / PrivateLink
+                            │ (Secure private connection)
+                            ↓
+┌─────────────────────────────────────────────────────────────────┐
+│              AWS VPC (Data Plane - PHI Boundary)                 │
+├─────────────────────────────────────────────────────────────────┤
+│  **All PHI resides here - covered by AWS BAA**                  │
+│                                                                   │
+│  ├── RDS PostgreSQL (private subnet)                            │
+│  │    ├── Multi-tenant data model with RLS policies             │
+│  │    ├── pgvector for semantic search                          │
+│  │    ├── Encrypted with KMS, Multi-AZ, backups                 │
+│  │    └── Security group: PostgreSQL port only from app         │
+│  │                                                               │
+│  ├── S3 Buckets (VPC endpoint access)                           │
+│  │    ├── Encrypted document storage (SSE-KMS)                  │
+│  │    ├── Versioning + lifecycle policies                       │
+│  │    └── Bucket policy: app IAM role only                      │
+│  │                                                               │
+│  ├── KMS (Key Management Service)                               │
+│  │    ├── Master keys for infrastructure                        │
+│  │    └── Per-tenant keys for data encryption                   │
+│  │                                                               │
+│  └── Bedrock (AI/ML - called via AWS SDK)                       │
+│       ├── Claude for RAG response generation                    │
+│       └── Titan Embeddings for vector generation                │
+│                                                                   │
+│  Provisioned by: Terraform modules (included in scaffold)       │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+**Key Architectural Principle**: PHI Boundary Enforcement
+- Railway containers are stateless and never store PHI locally
+- All PHI operations (database queries, S3 uploads, KMS encryption) happen via AWS SDK calls
+- VPC networking ensures data flows never transit public internet
+- IAM policies restrict application to specific AWS resources only
 
 ## Deploy to Railway (Recommended)
 
