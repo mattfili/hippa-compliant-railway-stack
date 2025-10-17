@@ -1,45 +1,176 @@
-# HIPAA-Compliant Backend API
+# HIPAA-Compliant Railway + AWS Scaffold
 
-Production-ready FastAPI backend with OIDC/SAML authentication, multi-tenant context management, and HIPAA-compliant infrastructure patterns.
+**Production-ready application scaffold** for deploying AI-enabled, HIPAA-compliant healthcare applications via one-click Railway template. Railway orchestrates deployment while Terraform provisions AWS infrastructure (VPC, RDS PostgreSQL, S3 storage, KMS encryption).
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/template/your-template-id)
 
 ## Overview
 
-This backend API scaffold provides a secure, compliant foundation for healthcare applications deployed on Railway with AWS infrastructure. It implements authentication, tenant isolation, structured logging, and health monitoring patterns required for HIPAA compliance.
+This is an **application scaffold** deployable via Railway template that enforces the **Railway as Orchestrator + AWS as Data Plane** architectural pattern:
 
-### Key Features
+- **Railway** hosts stateless application containers (FastAPI backend) and automates AWS infrastructure provisioning via Terraform
+- **AWS** provides all HIPAA-eligible data services (RDS PostgreSQL, S3 storage, KMS encryption, Bedrock AI) where PHI resides exclusively
+- **Terraform** Infrastructure as Code modules (included) provision VPC, RDS, S3, KMS, IAM, security groups, VPC networking
+- **VPC Networking** connects Railway-hosted containers to AWS VPC securely (PHI never transits public internet)
 
-- **JWT Authentication**: Token validation with JWKS endpoint integration and automatic key caching
-- **Multi-Tenant Context**: Automatic tenant isolation extracted from JWT claims
-- **HIPAA Compliance**: Structured logging, TLS encryption, and audit event documentation
-- **Health Checks**: Kubernetes-style liveness and readiness endpoints
-- **Database Connection**: Async SQLAlchemy with connection pooling and retry logic
-- **Vector Search Ready**: PostgreSQL with pgvector extension enabled
+**Developers clone this scaffold and extend it** for their healthcare application - it's a starting point with infrastructure, authentication, multi-tenant data model, and RAG pipeline already implemented.
 
-## Architecture Summary
+**Deploy in under 5 minutes** - Railway template automates Terraform execution to provision AWS infrastructure, no manual AWS console work required.
+
+### What You Get (Scaffold Includes)
+
+When you deploy this scaffold via Railway template, you automatically get:
+
+**Infrastructure Scaffold (Terraform):**
+✅ **AWS VPC** with public/private subnets, security groups, VPC endpoints (via Terraform)
+✅ **AWS RDS PostgreSQL** with pgvector extension, Multi-AZ, encrypted (via Terraform)
+✅ **AWS S3 Buckets** for document storage, encrypted, versioned (via Terraform, future feature)
+✅ **AWS KMS Keys** master key + per-tenant aliases (via Terraform, future feature)
+✅ **IAM Roles & Policies** with least privilege for application (via Terraform)
+✅ **VPC Networking** security groups, VPC peering/PrivateLink config for Railway connectivity
+
+**Application Scaffold (FastAPI):**
+✅ **Multi-Tenant Data Model** with Row-Level Security policies on all tables
+✅ **Tenant Context Middleware** extracts tenant ID from JWT and enforces filtering
+✅ **JWT Authentication** with OIDC/SAML integration (configurable IdP)
+✅ **Vector Search** ready for RAG with pgvector (1024-dimensional embeddings)
+✅ **Audit Logging** immutable append-only logs with database triggers
+✅ **Soft Deletes** for HIPAA retention requirements
+✅ **Automated Migrations** on every deployment (Alembic)
+✅ **Health Checks** for monitoring and alerting
+
+### HIPAA Compliance Built-In
+
+- ✅ **PHI Boundary Enforced**: All PHI resides in AWS (RDS, S3, KMS) - Railway containers never store PHI locally
+- ✅ **Comprehensive AWS BAA Coverage**: RDS, S3, KMS, Bedrock all covered by AWS BAA
+- ✅ **VPC Networking**: Private connectivity between Railway app and AWS services (no public internet transit)
+- ✅ **Row-Level Security**: PostgreSQL RLS policies block cross-tenant queries at database level
+- ✅ **Per-Tenant Encryption**: AWS KMS keys provide cryptographic isolation between tenants (future feature)
+- ✅ **Immutable Audit Logs**: Database triggers prevent UPDATE/DELETE on audit_logs table
+- ✅ **AWS Config Rules**: Drift detection for unencrypted resources, overly permissive IAM (future feature)
+- ✅ **IAM Least Privilege**: Application IAM role scoped to specific resources only
+
+### Architecture
 
 ```
-Client → [OIDC/SAML IdP] → Backend API
-                           ├── Authentication Layer (JWT validation)
-                           ├── Middleware (tenant context, logging, errors)
-                           ├── API Routes (/api/v1/auth, /api/v1/health)
-                           └── Database (PostgreSQL with pgvector)
+┌─────────────────────────────────────────────────────────────────┐
+│                    Railway (Orchestrator)                        │
+├─────────────────────────────────────────────────────────────────┤
+│  • Hosts stateless application containers (FastAPI)             │
+│  • Automates Terraform execution for AWS provisioning           │
+│  • No PHI storage - containers are ephemeral                    │
+│                                                                   │
+│  ┌────────────────────────────────────────────────┐             │
+│  │ FastAPI Backend Container                      │             │
+│  │  ├── JWT authentication + tenant middleware    │             │
+│  │  ├── SQLAlchemy models + Alembic migrations    │             │
+│  │  ├── API routes (/ingest, /query, /audit)     │             │
+│  │  └── Connects to AWS via IAM role + VPC       │             │
+│  └────────────────────────────────────────────────┘             │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │
+                            │ VPC Peering / PrivateLink
+                            │ (Secure private connection)
+                            ↓
+┌─────────────────────────────────────────────────────────────────┐
+│              AWS VPC (Data Plane - PHI Boundary)                 │
+├─────────────────────────────────────────────────────────────────┤
+│  **All PHI resides here - covered by AWS BAA**                  │
+│                                                                   │
+│  ├── RDS PostgreSQL (private subnet)                            │
+│  │    ├── Multi-tenant data model with RLS policies             │
+│  │    ├── pgvector for semantic search                          │
+│  │    ├── Encrypted with KMS, Multi-AZ, backups                 │
+│  │    └── Security group: PostgreSQL port only from app         │
+│  │                                                               │
+│  ├── S3 Buckets (VPC endpoint access)                           │
+│  │    ├── Encrypted document storage (SSE-KMS)                  │
+│  │    ├── Versioning + lifecycle policies                       │
+│  │    └── Bucket policy: app IAM role only                      │
+│  │                                                               │
+│  ├── KMS (Key Management Service)                               │
+│  │    ├── Master keys for infrastructure                        │
+│  │    └── Per-tenant keys for data encryption                   │
+│  │                                                               │
+│  └── Bedrock (AI/ML - called via AWS SDK)                       │
+│       ├── Claude for RAG response generation                    │
+│       └── Titan Embeddings for vector generation                │
+│                                                                   │
+│  Provisioned by: Terraform modules (included in scaffold)       │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-**Integrations:**
-- AWS Secrets Manager (runtime secret management)
-- AWS KMS (encryption key management - future)
-- RDS PostgreSQL (database with BAA coverage)
-- CloudWatch (centralized logging via Railway)
+**Key Architectural Principle**: PHI Boundary Enforcement
+- Railway containers are stateless and never store PHI locally
+- All PHI operations (database queries, S3 uploads, KMS encryption) happen via AWS SDK calls
+- VPC networking ensures data flows never transit public internet
+- IAM policies restrict application to specific AWS resources only
 
-## Prerequisites
+## Deploy to Railway (Recommended)
 
-Before starting, ensure you have:
+### Option 1: One-Click Deploy (Fastest)
 
-- **Python 3.11+** installed
-- **Docker** and Docker Compose (for local PostgreSQL)
-- **Railway CLI** (for deployment): `npm install -g @railway/cli`
-- **AWS Account** with Business Associate Agreement (BAA) signed
-- **Identity Provider** (AWS Cognito, Okta, Auth0, or Azure AD) with OIDC/SAML support
+Click the button and you're done:
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/template/your-template-id)
+
+Railway will automatically:
+1. Execute Terraform to provision AWS RDS PostgreSQL with pgvector
+2. Execute Terraform to provision AWS S3 buckets (future feature)
+3. Execute Terraform to provision AWS KMS keys (future feature)
+4. Deploy the FastAPI backend application to Railway
+5. Run database migrations on deployment
+6. Configure health checks for monitoring
+
+**All you need**: AWS credentials and OIDC/SAML provider credentials (add them in Railway dashboard after deployment).
+
+### Option 2: Deploy from Repository
+
+1. Fork this repository
+2. Connect to Railway: "New Project" → "Deploy from GitHub repo"
+3. Add environment variables (see below)
+4. Railway handles the rest automatically
+
+### Required Environment Variables
+
+After deployment, configure these in Railway dashboard:
+
+```bash
+# OIDC Authentication (required)
+OIDC_ISSUER_URL=https://your-idp.com
+OIDC_CLIENT_ID=your_client_id
+OIDC_CLIENT_SECRET=your_secret
+
+# AWS for Bedrock/KMS (required for future features)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
+
+# CORS (required)
+ALLOWED_ORIGINS=https://your-frontend.com
+
+# Optional (Railway sets these automatically)
+# DATABASE_URL=<auto-injected>
+# ENVIRONMENT=production
+# LOG_LEVEL=INFO
+```
+
+### Verify Deployment
+
+Once deployed:
+- Check health: `https://your-app.railway.app/api/v1/health/ready`
+- View logs in Railway dashboard for "Database migrations completed"
+- System tenant is automatically seeded
+
+That's it! Your HIPAA-compliant backend is live.
+
+## Prerequisites (For HIPAA Production Use)
+
+Before deploying to production:
+
+- **Railway Account** with Business Associate Agreement (BAA) signed
+- **AWS Account** with BAA for Bedrock and KMS services
+- **Identity Provider** with OIDC/SAML support (AWS Cognito, Okta, Auth0, Azure AD)
 
 ## Quickstart (Local Development)
 
@@ -177,75 +308,30 @@ mypy app/
 black app/ tests/ && ruff check app/ tests/ && mypy app/
 ```
 
-## Railway Deployment
+## Advanced Configuration (Optional)
 
-Deploy to Railway with pgvector-enabled PostgreSQL and automated migrations.
+The Railway template works out-of-the-box, but you can customize if needed:
 
-### Using Railway Template (Recommended)
+### PostgreSQL Tuning
 
-1. **Deploy pgvector PostgreSQL template:**
-   - Visit: https://railway.com/deploy/3jJFCA
-   - Click "Deploy Now"
-   - Wait for PostgreSQL provisioning (2-5 minutes)
+For production workloads, see [docs/POSTGRESQL_TUNING.md](docs/POSTGRESQL_TUNING.md) for:
+- Memory optimization by RAM tier
+- Query performance tuning
+- Vector search optimization
+- HIPAA compliance settings (WAL archiving)
 
-2. **Deploy this application:**
-   - Fork this repository to your GitHub account
-   - In Railway dashboard, click "New" > "GitHub Repo"
-   - Select your forked repository
-   - Choose `backend` directory as root
-   - Railway will automatically build and deploy
+**Note**: The template uses sensible defaults. Tuning is optional.
 
-3. **Configure Environment Variables:**
+### Troubleshooting
 
-   In Railway dashboard, set the following required variables:
+If you encounter issues, see [docs/RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md) for:
+- pgvector extension verification
+- Common deployment issues
+- Database connection troubleshooting
 
-   ```bash
-   # Auto-provided by Railway PostgreSQL service
-   DATABASE_URL=postgresql://postgres:password@hostname:5432/railway
+### Manual Deployment
 
-   # Application configuration
-   ENVIRONMENT=production
-   LOG_LEVEL=INFO
-   ALLOWED_ORIGINS=https://your-frontend-domain.com,https://admin.example.com
-
-   # OIDC/SAML authentication
-   OIDC_ISSUER_URL=https://cognito-idp.us-east-1.amazonaws.com/us-east-1_XXXXXXXXX
-   OIDC_CLIENT_ID=your_production_client_id
-   OIDC_CLIENT_SECRET=your_production_client_secret
-
-   # AWS credentials for Bedrock and KMS
-   AWS_REGION=us-east-1
-   AWS_ACCESS_KEY_ID=your_aws_access_key
-   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-   ```
-
-   **Note**: `DATABASE_URL` is automatically injected by Railway when you link the PostgreSQL service.
-
-4. **Verify Deployment:**
-
-   Once deployed, verify the application is running:
-
-   ```bash
-   # Check health endpoint (when implemented)
-   curl https://your-backend-url.railway.app/api/v1/health/ready
-
-   # Check Railway logs
-   # - Look for "Database migrations completed"
-   # - Verify no startup errors
-   # - Confirm application listening on port
-   ```
-
-5. **Verify pgvector Extension:**
-
-   Follow the verification steps in [docs/RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md):
-
-   - Open Railway PostgreSQL console
-   - Run: `SELECT * FROM pg_available_extensions WHERE name = 'vector';`
-   - Verify pgvector is available and enabled
-
-### Manual Railway Setup
-
-If not using the template:
+If you need to deploy without the Railway template:
 
 1. **Create PostgreSQL service:**
    - In Railway project, click "New" > "Database" > "PostgreSQL"
