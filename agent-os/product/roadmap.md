@@ -18,7 +18,7 @@ Features are ordered to build foundational infrastructure first (Terraform modul
 
 2. [x] **Database Schema and Multi-Tenant Data Model** — PostgreSQL schema with tenant isolation patterns, pgvector extension setup, core tables (tenants, users, documents, audit_logs), foreign key relationships, and database migrations framework. Includes indexes optimized for tenant-scoped queries. Database migrations run automatically on deployment. `M`
 
-3. [ ] **AWS Infrastructure Provisioning (Terraform Modules)** — Complete Infrastructure as Code implementation for all AWS resources required for HIPAA compliance. Includes:
+3. [x] **AWS Infrastructure Provisioning (Terraform Modules)** — Complete Infrastructure as Code implementation for all AWS resources required for HIPAA compliance. Includes:
    - **VPC & Networking**: VPC with public/private subnets across 3 AZs, NAT gateway, internet gateway, route tables, network ACLs, VPC endpoints for S3/RDS private access, VPC peering/PrivateLink configuration for Railway connectivity
    - **RDS PostgreSQL**: Multi-AZ deployment with pgvector extension, encryption at rest with KMS, TLS 1.2+ enforcement, automated backups (30-day retention), security groups restricting access to application IAM role only, parameter groups for HIPAA compliance settings
    - **S3 Buckets**: Encrypted buckets for documents (SSE-KMS with per-tenant keys), versioning enabled, lifecycle policies for cost optimization, bucket policies restricting access to application IAM role, VPC endpoint access only (no public access), access logging to audit bucket
