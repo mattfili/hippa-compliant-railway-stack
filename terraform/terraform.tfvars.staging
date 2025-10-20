@@ -1,0 +1,42 @@
+# ==============================================================================
+# Staging Environment Configuration
+# ==============================================================================
+# Production-like settings for staging environment
+# ==============================================================================
+
+# Environment
+environment = "staging"
+aws_region  = "us-east-1"
+
+# VPC Configuration
+vpc_cidr            = "10.1.0.0/16"
+availability_zones  = ["us-east-1a", "us-east-1b", "us-east-1c"]
+enable_nat_gateway  = true
+enable_vpc_endpoints = true
+
+# Networking
+railway_ip_ranges = []  # Populate with Railway IP ranges from documentation
+
+# KMS
+enable_key_rotation = true
+
+# S3
+enable_lifecycle_policies = true
+documents_bucket_name     = ""  # Auto-generated name
+
+# RDS - Staging Configuration (Production-Like)
+rds_instance_class    = "db.t3.large"  # 2 vCPUs, 8GB RAM
+rds_allocated_storage = 50             # 50GB storage
+rds_multi_az          = true           # Multi-AZ for HA testing
+enable_read_replica   = false          # No read replica in staging
+backup_retention_days = 30             # Full 30-day retention
+deletion_protection   = false          # Allow deletion for testing
+
+# AWS Config
+sns_alert_email = ""  # Optional: Add email for Config alerts
+
+# Additional Tags
+tags = {
+  CostCenter = "Staging"
+  Owner      = "DevOps"
+}

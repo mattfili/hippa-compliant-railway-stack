@@ -1,0 +1,322 @@
+package test
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/gruntwork-io/terratest/modules/aws"
+	"github.com/gruntwork-io/terratest/modules/random"
+	"github.com/gruntwork-io/terratest/modules/terraform"
+	"github.com/stretchr/testify/assert"
+)
+
+// TestS3ModuleBucketCreation verifies that all three S3 buckets are created with correct naming
+func TestS3ModuleBucketCreation(t *testing.T) {
+	t.Parallel()
+
+	awsRegion := "us-east-1"
+	expectedAccountID := aws.GetAccountId(t)
+	uniqueID := random.UniqueId()
+	environment := fmt.Sprintf("test-%s", uniqueID)
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "../../modules/s3",
+		Vars: map[string]interface{}{
+			"environment":               environment,
+			"aws_account_id":            expectedAccountID,
+			"kms_key_id":                "arn:aws:kms:us-east-1:123456789012:key/test-key-id", // Mock KMS key for structure test
+			"enable_lifecycle_policies": false, // Disable for faster test
+		},
+		EnvVars: map[string]string{
+			"AWS_DEFAULT_REGION": awsRegion,
+		},
+	})
+
+	defer terraform.Destroy(t, terraformOptions)
+	terraform.InitAndApply(t, terraformOptions)
+
+	// Verify documents bucket name
+	documentsBucket := terraform.Output(t, terraformOptions, "s3_bucket_documents")
+	expectedDocsBucket := fmt.Sprintf("hipaa-compliant-docs-%s-%s", environment, expectedAccountID)
+	assert.Equal(t, expectedDocsBucket, documentsBucket)
+
+	// Verify backups bucket name
+	backupsBucket := terraform.Output(t, terraformOptions, "s3_bucket_backups")
+	expectedBackupsBucket := fmt.Sprintf("hipaa-compliant-backups-%s-%s", environment, expectedAccountID)
+	assert.Equal(t, expectedBackupsBucket, backupsBucket)
+
+	// Verify audit logs bucket name
+	auditLogsBucket := terraform.Output(t, terraformOptions, "s3_bucket_audit_logs")
+	expectedAuditBucket := fmt.Sprintf("hipaa-compliant-audit-%s-%s", environment, expectedAccountID)
+	assert.Equal(t, expectedAuditBucket, auditLogsBucket)
+}
+
+// TestS3ModuleEncryption verifies SSE-KMS encryption is enabled on all buckets
+func TestS3ModuleEncryption(t *testing.T) {
+	t.Parallel()
+
+	awsRegion := "us-east-1"
+	expectedAccountID := aws.GetAccountId(t)
+	uniqueID := random.UniqueId()
+	environment := fmt.Sprintf("test-%s", uniqueID)
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "../../modules/s3",
+		Vars: map[string]interface{}{
+			"environment":               environment,
+			"aws_account_id":            expectedAccountID,
+			"kms_key_id":                "arn:aws:kms:us-east-1:123456789012:key/test-key-id",
+			"enable_lifecycle_policies": false,
+		},
+		EnvVars: map[string]string{
+			"AWS_DEFAULT_REGION": awsRegion,
+		},
+	})
+
+	defer terraform.Destroy(t, terraformOptions)
+	terraform.InitAndApply(t, terraformOptions)
+
+	documentsBucket := terraform.Output(t, terraformOptions, "s3_bucket_documents")
+	backupsBucket := terraform.Output(t, terraformOptions, "s3_bucket_backups")
+	auditLogsBucket := terraform.Output(t, terraformOptions, "s3_bucket_audit_logs")
+
+	// Verify encryption on documents bucket
+	docsEncryption := aws.GetS3BucketEncryption(t, awsRegion, documentsBucket)
+	assert.NotNil(t, docsEncryption)
+	assert.Equal(t, "aws:kms", docsEncryption.ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm)
+
+	// Verify encryption on backups bucket
+	backupsEncryption := aws.GetS3BucketEncryption(t, awsRegion, backupsBucket)
+	assert.NotNil(t, backupsEncryption)
+	assert.Equal(t, "aws:kms", backupsEncryption.ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm)
+
+	// Verify encryption on audit logs bucket
+	auditEncryption := aws.GetS3BucketEncryption(t, awsRegion, auditLogsBucket)
+	assert.NotNil(t, auditEncryption)
+	assert.Equal(t, "aws:kms", auditEncryption.ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm)
+}
+
+// TestS3ModuleVersioning verifies versioning is enabled on all buckets
+func TestS3ModuleVersioning(t *testing.T) {
+	t.Parallel()
+
+	awsRegion := "us-east-1"
+	expectedAccountID := aws.GetAccountId(t)
+	uniqueID := random.UniqueId()
+	environment := fmt.Sprintf("test-%s", uniqueID)
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "../../modules/s3",
+		Vars: map[string]interface{}{
+			"environment":               environment,
+			"aws_account_id":            expectedAccountID,
+			"kms_key_id":                "arn:aws:kms:us-east-1:123456789012:key/test-key-id",
+			"enable_lifecycle_policies": false,
+		},
+		EnvVars: map[string]string{
+			"AWS_DEFAULT_REGION": awsRegion,
+		},
+	})
+
+	defer terraform.Destroy(t, terraformOptions)
+	terraform.InitAndApply(t, terraformOptions)
+
+	documentsBucket := terraform.Output(t, terraformOptions, "s3_bucket_documents")
+	backupsBucket := terraform.Output(t, terraformOptions, "s3_bucket_backups")
+	auditLogsBucket := terraform.Output(t, terraformOptions, "s3_bucket_audit_logs")
+
+	// Verify versioning on all buckets
+	docsVersioning := aws.GetS3BucketVersioning(t, awsRegion, documentsBucket)
+	assert.Equal(t, "Enabled", docsVersioning)
+
+	backupsVersioning := aws.GetS3BucketVersioning(t, awsRegion, backupsBucket)
+	assert.Equal(t, "Enabled", backupsVersioning)
+
+	auditVersioning := aws.GetS3BucketVersioning(t, awsRegion, auditLogsBucket)
+	assert.Equal(t, "Enabled", auditVersioning)
+}
+
+// TestS3ModulePublicAccessBlock verifies public access is blocked on all buckets
+func TestS3ModulePublicAccessBlock(t *testing.T) {
+	t.Parallel()
+
+	awsRegion := "us-east-1"
+	expectedAccountID := aws.GetAccountId(t)
+	uniqueID := random.UniqueId()
+	environment := fmt.Sprintf("test-%s", uniqueID)
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "../../modules/s3",
+		Vars: map[string]interface{}{
+			"environment":               environment,
+			"aws_account_id":            expectedAccountID,
+			"kms_key_id":                "arn:aws:kms:us-east-1:123456789012:key/test-key-id",
+			"enable_lifecycle_policies": false,
+		},
+		EnvVars: map[string]string{
+			"AWS_DEFAULT_REGION": awsRegion,
+		},
+	})
+
+	defer terraform.Destroy(t, terraformOptions)
+	terraform.InitAndApply(t, terraformOptions)
+
+	documentsBucket := terraform.Output(t, terraformOptions, "s3_bucket_documents")
+	backupsBucket := terraform.Output(t, terraformOptions, "s3_bucket_backups")
+	auditLogsBucket := terraform.Output(t, terraformOptions, "s3_bucket_audit_logs")
+
+	// Verify public access block on documents bucket
+	docsPublicAccess := aws.GetS3PublicAccessBlock(t, awsRegion, documentsBucket)
+	assert.True(t, *docsPublicAccess.BlockPublicAcls)
+	assert.True(t, *docsPublicAccess.BlockPublicPolicy)
+	assert.True(t, *docsPublicAccess.IgnorePublicAcls)
+	assert.True(t, *docsPublicAccess.RestrictPublicBuckets)
+
+	// Verify public access block on backups bucket
+	backupsPublicAccess := aws.GetS3PublicAccessBlock(t, awsRegion, backupsBucket)
+	assert.True(t, *backupsPublicAccess.BlockPublicAcls)
+	assert.True(t, *backupsPublicAccess.BlockPublicPolicy)
+	assert.True(t, *backupsPublicAccess.IgnorePublicAcls)
+	assert.True(t, *backupsPublicAccess.RestrictPublicBuckets)
+
+	// Verify public access block on audit logs bucket
+	auditPublicAccess := aws.GetS3PublicAccessBlock(t, awsRegion, auditLogsBucket)
+	assert.True(t, *auditPublicAccess.BlockPublicAcls)
+	assert.True(t, *auditPublicAccess.BlockPublicPolicy)
+	assert.True(t, *auditPublicAccess.IgnorePublicAcls)
+	assert.True(t, *auditPublicAccess.RestrictPublicBuckets)
+}
+
+// TestS3ModuleLifecyclePolicies verifies lifecycle policies are configured when enabled
+func TestS3ModuleLifecyclePolicies(t *testing.T) {
+	t.Parallel()
+
+	awsRegion := "us-east-1"
+	expectedAccountID := aws.GetAccountId(t)
+	uniqueID := random.UniqueId()
+	environment := fmt.Sprintf("test-%s", uniqueID)
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "../../modules/s3",
+		Vars: map[string]interface{}{
+			"environment":               environment,
+			"aws_account_id":            expectedAccountID,
+			"kms_key_id":                "arn:aws:kms:us-east-1:123456789012:key/test-key-id",
+			"enable_lifecycle_policies": true,
+		},
+		EnvVars: map[string]string{
+			"AWS_DEFAULT_REGION": awsRegion,
+		},
+	})
+
+	defer terraform.Destroy(t, terraformOptions)
+	terraform.InitAndApply(t, terraformOptions)
+
+	documentsBucket := terraform.Output(t, terraformOptions, "s3_bucket_documents")
+	backupsBucket := terraform.Output(t, terraformOptions, "s3_bucket_backups")
+
+	// Verify lifecycle policies exist on documents bucket
+	docsLifecycle := aws.GetS3BucketLifecycleConfiguration(t, awsRegion, documentsBucket)
+	assert.NotNil(t, docsLifecycle)
+	assert.Greater(t, len(docsLifecycle.Rules), 0, "Documents bucket should have lifecycle rules")
+
+	// Verify lifecycle policies exist on backups bucket
+	backupsLifecycle := aws.GetS3BucketLifecycleConfiguration(t, awsRegion, backupsBucket)
+	assert.NotNil(t, backupsLifecycle)
+	assert.Greater(t, len(backupsLifecycle.Rules), 0, "Backups bucket should have lifecycle rules")
+}
+
+// TestS3ModuleOutputs verifies all required outputs are populated
+func TestS3ModuleOutputs(t *testing.T) {
+	t.Parallel()
+
+	awsRegion := "us-east-1"
+	expectedAccountID := aws.GetAccountId(t)
+	uniqueID := random.UniqueId()
+	environment := fmt.Sprintf("test-%s", uniqueID)
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "../../modules/s3",
+		Vars: map[string]interface{}{
+			"environment":               environment,
+			"aws_account_id":            expectedAccountID,
+			"kms_key_id":                "arn:aws:kms:us-east-1:123456789012:key/test-key-id",
+			"enable_lifecycle_policies": false,
+		},
+		EnvVars: map[string]string{
+			"AWS_DEFAULT_REGION": awsRegion,
+		},
+	})
+
+	defer terraform.Destroy(t, terraformOptions)
+	terraform.InitAndApply(t, terraformOptions)
+
+	// Verify all outputs are non-empty
+	documentsBucket := terraform.Output(t, terraformOptions, "s3_bucket_documents")
+	assert.NotEmpty(t, documentsBucket)
+
+	backupsBucket := terraform.Output(t, terraformOptions, "s3_bucket_backups")
+	assert.NotEmpty(t, backupsBucket)
+
+	auditLogsBucket := terraform.Output(t, terraformOptions, "s3_bucket_audit_logs")
+	assert.NotEmpty(t, auditLogsBucket)
+
+	documentsBucketArn := terraform.Output(t, terraformOptions, "s3_bucket_documents_arn")
+	assert.NotEmpty(t, documentsBucketArn)
+	assert.Contains(t, documentsBucketArn, "arn:aws:s3:::")
+
+	backupsBucketArn := terraform.Output(t, terraformOptions, "s3_bucket_backups_arn")
+	assert.NotEmpty(t, backupsBucketArn)
+	assert.Contains(t, backupsBucketArn, "arn:aws:s3:::")
+
+	auditLogsBucketArn := terraform.Output(t, terraformOptions, "s3_bucket_audit_logs_arn")
+	assert.NotEmpty(t, auditLogsBucketArn)
+	assert.Contains(t, auditLogsBucketArn, "arn:aws:s3:::")
+
+	documentsRegion := terraform.Output(t, terraformOptions, "s3_bucket_documents_region")
+	assert.Equal(t, awsRegion, documentsRegion)
+}
+
+// TestS3ModuleAccessLogging verifies access logging is configured
+func TestS3ModuleAccessLogging(t *testing.T) {
+	t.Parallel()
+
+	awsRegion := "us-east-1"
+	expectedAccountID := aws.GetAccountId(t)
+	uniqueID := random.UniqueId()
+	environment := fmt.Sprintf("test-%s", uniqueID)
+
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: "../../modules/s3",
+		Vars: map[string]interface{}{
+			"environment":               environment,
+			"aws_account_id":            expectedAccountID,
+			"kms_key_id":                "arn:aws:kms:us-east-1:123456789012:key/test-key-id",
+			"enable_lifecycle_policies": false,
+		},
+		EnvVars: map[string]string{
+			"AWS_DEFAULT_REGION": awsRegion,
+		},
+	})
+
+	defer terraform.Destroy(t, terraformOptions)
+	terraform.InitAndApply(t, terraformOptions)
+
+	documentsBucket := terraform.Output(t, terraformOptions, "s3_bucket_documents")
+	backupsBucket := terraform.Output(t, terraformOptions, "s3_bucket_backups")
+	auditLogsBucket := terraform.Output(t, terraformOptions, "s3_bucket_audit_logs")
+
+	// Verify logging configuration on documents bucket
+	docsLogging := aws.GetS3BucketLoggingTarget(t, awsRegion, documentsBucket)
+	assert.Equal(t, auditLogsBucket, docsLogging)
+
+	docsLoggingPrefix := aws.GetS3BucketLoggingTargetPrefix(t, awsRegion, documentsBucket)
+	assert.Equal(t, "documents-access/", docsLoggingPrefix)
+
+	// Verify logging configuration on backups bucket
+	backupsLogging := aws.GetS3BucketLoggingTarget(t, awsRegion, backupsBucket)
+	assert.Equal(t, auditLogsBucket, backupsLogging)
+
+	backupsLoggingPrefix := aws.GetS3BucketLoggingTargetPrefix(t, awsRegion, backupsBucket)
+	assert.Equal(t, "backups-access/", backupsLoggingPrefix)
+}

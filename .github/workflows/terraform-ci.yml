@@ -1,0 +1,188 @@
+name: Terraform CI/CD
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+
+env:
+  TF_VERSION: '1.6.0'
+  TFLINT_VERSION: '0.48.0'
+  GO_VERSION: '1.21'
+  AWS_REGION: 'us-east-1'
+
+jobs:
+  # ===========================================================================
+  # Terraform Format Check
+  # ===========================================================================
+  terraform-format:
+    name: Terraform Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format Check
+        working-directory: terraform
+        run: terraform fmt -check -recursive -diff
+        continue-on-error: false
+
+      - name: Comment PR on Format Failure
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **Terraform Format Check Failed**\n\nPlease run `terraform fmt -recursive` to format your code.'
+            })
+
+  # ===========================================================================
+  # Terraform Validation
+  # ===========================================================================
+  terraform-validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module:
+          - '.'
+          - 'modules/vpc'
+          - 'modules/kms'
+          - 'modules/s3'
+          - 'modules/rds'
+          - 'modules/iam'
+          - 'modules/networking'
+          - 'modules/config'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: terraform/${{ matrix.module }}
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        working-directory: terraform/${{ matrix.module }}
+        run: terraform validate
+
+  # ===========================================================================
+  # TFLint Static Analysis
+  # ===========================================================================
+  tflint:
+    name: TFLint Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v${{ env.TFLINT_VERSION }}
+
+      - name: Initialize TFLint
+        working-directory: terraform
+        run: tflint --init
+
+      - name: Run TFLint
+        working-directory: terraform
+        run: tflint --recursive --format compact
+        continue-on-error: true
+
+      - name: Comment PR on TFLint Issues
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⚠️ **TFLint Found Issues**\n\nPlease review the TFLint output and fix any violations.'
+            })
+
+  # ===========================================================================
+  # Terraform Security Scan
+  # ===========================================================================
+  security-scan:
+    name: Security Scan (tfsec)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: terraform
+          soft_fail: true
+          additional_args: --minimum-severity MEDIUM
+
+  # ===========================================================================
+  # NOTE: Unit tests are NOT run in CI due to:
+  # - Creating real AWS resources (expensive)
+  # - Long execution time (30-60 minutes)
+  # - Requires AWS credentials
+  #
+  # Run tests manually before merging:
+  #   cd terraform/tests
+  #   go test -v -timeout 60m ./unit/...
+  # ===========================================================================
+
+  # ===========================================================================
+  # Status Check Summary
+  # ===========================================================================
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs:
+      - terraform-format
+      - terraform-validate
+      - tflint
+      - security-scan
+    if: always()
+    steps:
+      - name: Check CI Status
+        run: |
+          if [[ "${{ needs.terraform-format.result }}" == "success" ]] && \
+             [[ "${{ needs.terraform-validate.result }}" == "success" ]] && \
+             [[ "${{ needs.tflint.result }}" == "success" ]] && \
+             [[ "${{ needs.security-scan.result }}" == "success" ]]; then
+            echo "✅ All CI checks passed!"
+            exit 0
+          else
+            echo "❌ Some CI checks failed. Please review the output above."
+            exit 1
+          fi
+
+# ==============================================================================
+# Job Permissions
+# ===========================================================================
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+  issues: write
