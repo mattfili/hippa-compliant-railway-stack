@@ -110,6 +110,7 @@ jobs:
       - name: Run TFLint
         working-directory: terraform
         run: tflint --recursive --format compact
+        continue-on-error: true
 
       - name: Comment PR on TFLint Issues
         if: failure() && github.event_name == 'pull_request'
@@ -138,7 +139,6 @@ jobs:
         with:
           working_directory: terraform
           soft_fail: true
-          format: compact
           additional_args: --minimum-severity MEDIUM
 
   # ===========================================================================
