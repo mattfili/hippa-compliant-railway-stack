@@ -89,6 +89,24 @@ class Settings(BaseSettings):
         description="AWS Secrets Manager secret ID for runtime secrets"
     )
 
+    # AWS Infrastructure Settings (from Terraform)
+    s3_bucket_documents: str | None = Field(
+        default=None,
+        description="S3 bucket name for document storage (from Terraform output)"
+    )
+    s3_bucket_backups: str | None = Field(
+        default=None,
+        description="S3 bucket name for backup storage (from Terraform output)"
+    )
+    s3_bucket_audit_logs: str | None = Field(
+        default=None,
+        description="S3 bucket name for audit log storage (from Terraform output)"
+    )
+    kms_master_key_id: str | None = Field(
+        default=None,
+        description="KMS master key ID for infrastructure encryption (from Terraform output)"
+    )
+
     @field_validator("environment")
     @classmethod
     def validate_environment(cls, v: str) -> str:
