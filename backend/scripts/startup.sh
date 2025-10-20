@@ -3,8 +3,9 @@
 # Startup Script for HIPAA-Compliant Backend API
 # ==============================================================================
 # This script runs during container startup and performs:
-# 1. Database migrations using Alembic
-# 2. Application server startup using Uvicorn
+# 1. Load Terraform infrastructure outputs (if available)
+# 2. Database migrations using Alembic
+# 3. Application server startup using Uvicorn
 #
 # Error handling: Exit immediately if any command fails (set -e)
 # ==============================================================================
@@ -16,10 +17,23 @@ echo "HIPAA-Compliant Backend API - Starting"
 echo "=========================================="
 
 # ------------------------------------------------------------------------------
+# Load Terraform Outputs
+# ------------------------------------------------------------------------------
+echo ""
+echo "[0/3] Loading Terraform infrastructure outputs..."
+
+if [ -f "/terraform/outputs.json" ]; then
+  source /backend/scripts/load-terraform-outputs.sh
+  echo "✓ Terraform outputs loaded successfully"
+else
+  echo "⚠ WARNING: Terraform outputs not found. Using environment variables directly."
+fi
+
+# ------------------------------------------------------------------------------
 # Database Migrations
 # ------------------------------------------------------------------------------
 echo ""
-echo "[1/2] Running database migrations..."
+echo "[1/3] Running database migrations..."
 echo "Executing: alembic upgrade head"
 
 alembic upgrade head
@@ -30,7 +44,7 @@ echo "✓ Database migrations completed successfully"
 # Application Startup
 # ------------------------------------------------------------------------------
 echo ""
-echo "[2/2] Starting application server..."
+echo "[2/3] Starting application server..."
 echo "Executing: uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
 # Start Uvicorn with production settings
