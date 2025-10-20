@@ -11,8 +11,8 @@ locals {
   full_suffix = var.name_suffix == "" ? local.env_label : "${local.env_label}-${var.name_suffix}"
 
   # Bucket naming convention: hipaa-compliant-{type}-{env_label}-{account-id}
-  documents_bucket_name = var.documents_bucket_name != "" ? var.documents_bucket_name : "hipaa-compliant-docs-${local.full_suffix}-${var.aws_account_id}"
-  backups_bucket_name   = "hipaa-compliant-backups-${local.full_suffix}-${var.aws_account_id}"
+  documents_bucket_name  = var.documents_bucket_name != "" ? var.documents_bucket_name : "hipaa-compliant-docs-${local.full_suffix}-${var.aws_account_id}"
+  backups_bucket_name    = "hipaa-compliant-backups-${local.full_suffix}-${var.aws_account_id}"
   audit_logs_bucket_name = "hipaa-compliant-audit-${local.full_suffix}-${var.aws_account_id}"
 
   common_tags = merge(

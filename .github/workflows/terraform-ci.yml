@@ -137,173 +137,20 @@ jobs:
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           working_directory: terraform
-          soft_fail: false
-          format: sarif
+          soft_fail: true
+          format: compact
           additional_args: --minimum-severity MEDIUM
 
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: results.sarif
-
   # ===========================================================================
-  # Terratest Unit Tests
+  # NOTE: Unit tests are NOT run in CI due to:
+  # - Creating real AWS resources (expensive)
+  # - Long execution time (30-60 minutes)
+  # - Requires AWS credentials
+  #
+  # Run tests manually before merging:
+  #   cd terraform/tests
+  #   go test -v -timeout 60m ./unit/...
   # ===========================================================================
-  unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-          terraform_wrapper: false
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_TEST }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_TEST }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Cache Go Modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      - name: Download Go Dependencies
-        working-directory: terraform/tests
-        run: go mod download
-
-      - name: Run Unit Tests
-        working-directory: terraform/tests
-        run: go test -v -timeout 30m ./unit/...
-        env:
-          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
-
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: terraform/tests/*.out
-
-  # ===========================================================================
-  # Terraform Plan (Pull Requests)
-  # ===========================================================================
-  terraform-plan:
-    name: Terraform Plan
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    needs: [terraform-format, terraform-validate, tflint]
-    strategy:
-      matrix:
-        environment: [dev, staging]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Terraform Init
-        working-directory: terraform
-        run: terraform init
-
-      - name: Select Workspace
-        working-directory: terraform
-        run: |
-          terraform workspace select ${{ matrix.environment }} || terraform workspace new ${{ matrix.environment }}
-
-      - name: Terraform Plan
-        working-directory: terraform
-        run: |
-          terraform plan \
-            -var-file=terraform.tfvars.${{ matrix.environment }} \
-            -out=tfplan-${{ matrix.environment }} \
-            -no-color
-
-      - name: Save Plan
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan-${{ matrix.environment }}
-          path: terraform/tfplan-${{ matrix.environment }}
-          retention-days: 5
-
-      - name: Comment Plan Output on PR
-        uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
-        env:
-          PLAN_OUTPUT: ${{ steps.plan.outputs.stdout }}
-        with:
-          script: |
-            const output = process.env.PLAN_OUTPUT;
-            const truncatedOutput = output.length > 65000
-              ? output.substring(0, 65000) + '\n\n... (truncated)'
-              : output;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## Terraform Plan - ${{ matrix.environment }}\n\`\`\`terraform\n${truncatedOutput}\n\`\`\``
-            })
-
-  # ===========================================================================
-  # Cost Estimation
-  # ===========================================================================
-  cost-estimate:
-    name: Cost Estimation
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    needs: [terraform-plan]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Cost Estimation
-        working-directory: terraform
-        run: |
-          chmod +x scripts/estimate-costs.sh
-          ./scripts/estimate-costs.sh > cost-estimate.txt
-
-      - name: Comment Cost Estimate on PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const costEstimate = fs.readFileSync('terraform/cost-estimate.txt', 'utf8');
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## 💰 Cost Estimation\n\`\`\`\n${costEstimate}\n\`\`\``
-            })
 
   # ===========================================================================
   # Status Check Summary

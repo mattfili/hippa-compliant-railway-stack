@@ -33,8 +33,7 @@ backup_retention_days = 7               # Reduced retention for dev
 deletion_protection   = false           # Allow deletion in dev
 
 # AWS Config
-sns_alert_email         = ""  # Optional: Add email for Config alerts
-enable_auto_remediation = false
+sns_alert_email = ""  # Optional: Add email for Config alerts
 
 # Additional Tags
 tags = {

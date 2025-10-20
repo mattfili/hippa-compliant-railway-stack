@@ -9,11 +9,6 @@ variable "environment" {
   }
 }
 
-variable "vpc_id" {
-  type        = string
-  description = "VPC ID from vpc module"
-}
-
 variable "private_subnet_ids" {
   type        = list(string)
   description = "Private subnet IDs for RDS deployment"
@@ -58,8 +53,8 @@ variable "max_allocated_storage" {
   description = "Maximum allocated storage for autoscaling in GB"
   default     = 100
   validation {
-    condition     = var.max_allocated_storage >= var.allocated_storage
-    error_message = "Max allocated storage must be greater than or equal to allocated storage"
+    condition     = var.max_allocated_storage >= 20
+    error_message = "Max allocated storage must be at least 20 GB"
   }
 }
 

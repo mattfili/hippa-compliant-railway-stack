@@ -63,12 +63,6 @@ variable "kms_master_key_arn" {
   }
 }
 
-variable "rds_arn" {
-  type        = string
-  description = "ARN of the RDS instance (used for IAM database authentication if needed)"
-  default     = ""
-}
-
 variable "external_id" {
   type        = string
   description = "External ID for AssumeRole trust policy (for Railway or external access)"

@@ -44,13 +44,13 @@ locals {
 module "vpc" {
   source = "./modules/vpc"
 
-  vpc_cidr            = var.vpc_cidr
-  environment         = var.environment
-  name_suffix         = var.name_suffix
-  availability_zones  = var.availability_zones
-  enable_nat_gateway  = var.enable_nat_gateway
+  vpc_cidr             = var.vpc_cidr
+  environment          = var.environment
+  name_suffix          = var.name_suffix
+  availability_zones   = var.availability_zones
+  enable_nat_gateway   = var.enable_nat_gateway
   enable_vpc_endpoints = var.enable_vpc_endpoints
-  tags                = local.common_tags
+  tags                 = local.common_tags
 }
 
 # ------------------------------------------------------------------------------
@@ -78,11 +78,11 @@ module "kms" {
 module "networking" {
   source = "./modules/networking"
 
-  environment        = var.environment
-  name_suffix        = var.name_suffix
-  vpc_id             = module.vpc.vpc_id
-  railway_ip_ranges  = var.railway_ip_ranges
-  tags               = local.common_tags
+  environment       = var.environment
+  name_suffix       = var.name_suffix
+  vpc_id            = module.vpc.vpc_id
+  railway_ip_ranges = var.railway_ip_ranges
+  tags              = local.common_tags
 
   depends_on = [module.vpc]
 }
@@ -96,13 +96,13 @@ module "networking" {
 module "s3" {
   source = "./modules/s3"
 
-  environment              = var.environment
-  name_suffix              = var.name_suffix
-  aws_account_id           = local.aws_account_id
-  kms_key_id               = module.kms.kms_master_key_id
+  environment               = var.environment
+  name_suffix               = var.name_suffix
+  aws_account_id            = local.aws_account_id
+  kms_key_id                = module.kms.kms_master_key_id
   enable_lifecycle_policies = var.enable_lifecycle_policies
-  documents_bucket_name    = var.documents_bucket_name
-  tags                     = local.common_tags
+  documents_bucket_name     = var.documents_bucket_name
+  tags                      = local.common_tags
 
   depends_on = [module.kms]
 }
@@ -116,18 +116,17 @@ module "s3" {
 module "rds" {
   source = "./modules/rds"
 
-  environment            = var.environment
-  vpc_id                 = module.vpc.vpc_id
-  private_subnet_ids     = module.vpc.private_subnet_ids
-  security_group_id      = module.networking.rds_security_group_id
-  kms_key_id             = module.kms.kms_master_key_id
-  instance_class         = var.rds_instance_class
-  allocated_storage      = var.rds_allocated_storage
-  multi_az               = var.rds_multi_az
-  enable_read_replica    = var.enable_read_replica
-  backup_retention_days  = var.backup_retention_days
-  deletion_protection    = var.deletion_protection
-  tags                   = local.common_tags
+  environment           = var.environment
+  private_subnet_ids    = module.vpc.private_subnet_ids
+  security_group_id     = module.networking.rds_security_group_id
+  kms_key_id            = module.kms.kms_master_key_id
+  instance_class        = var.rds_instance_class
+  allocated_storage     = var.rds_allocated_storage
+  multi_az              = var.rds_multi_az
+  enable_read_replica   = var.enable_read_replica
+  backup_retention_days = var.backup_retention_days
+  deletion_protection   = var.deletion_protection
+  tags                  = local.common_tags
 
   depends_on = [module.vpc, module.networking, module.kms]
 }
@@ -141,14 +140,13 @@ module "rds" {
 module "iam" {
   source = "./modules/iam"
 
-  environment               = var.environment
-  name_suffix               = var.name_suffix
-  s3_bucket_documents_arn   = module.s3.s3_bucket_documents_arn
-  s3_bucket_backups_arn     = module.s3.s3_bucket_backups_arn
-  s3_bucket_audit_logs_arn  = module.s3.s3_bucket_audit_logs_arn
-  kms_master_key_arn        = module.kms.kms_master_key_arn
-  rds_arn                   = module.rds.rds_arn
-  tags                      = local.common_tags
+  environment              = var.environment
+  name_suffix              = var.name_suffix
+  s3_bucket_documents_arn  = module.s3.s3_bucket_documents_arn
+  s3_bucket_backups_arn    = module.s3.s3_bucket_backups_arn
+  s3_bucket_audit_logs_arn = module.s3.s3_bucket_audit_logs_arn
+  kms_master_key_arn       = module.kms.kms_master_key_arn
+  tags                     = local.common_tags
 
   depends_on = [module.s3, module.kms, module.rds]
 }
@@ -162,12 +160,11 @@ module "iam" {
 module "config" {
   source = "./modules/config"
 
-  environment            = var.environment
-  name_suffix            = var.name_suffix
-  s3_bucket_audit_logs   = module.s3.s3_bucket_audit_logs
-  sns_alert_email        = var.sns_alert_email
-  enable_auto_remediation = var.enable_auto_remediation
-  tags                   = local.common_tags
+  environment          = var.environment
+  name_suffix          = var.name_suffix
+  s3_bucket_audit_logs = module.s3.s3_bucket_audit_logs
+  sns_alert_email      = var.sns_alert_email
+  tags                 = local.common_tags
 
   depends_on = [module.s3]
 }

@@ -24,12 +24,12 @@ output "config_delivery_channel_name" {
 
 output "config_rules" {
   value = {
-    s3_encryption         = aws_config_config_rule.s3_bucket_encryption.name
-    rds_encryption        = aws_config_config_rule.rds_storage_encrypted.name
-    rds_public_access     = aws_config_config_rule.rds_public_access.name
-    iam_no_admin_access   = aws_config_config_rule.iam_policy_no_admin_access.name
-    cloudtrail_enabled    = aws_config_config_rule.cloudtrail_enabled.name
-    vpc_sg_authorized     = aws_config_config_rule.vpc_sg_authorized_ports.name
+    s3_encryption       = aws_config_config_rule.s3_bucket_encryption.name
+    rds_encryption      = aws_config_config_rule.rds_storage_encrypted.name
+    rds_public_access   = aws_config_config_rule.rds_public_access.name
+    iam_no_admin_access = aws_config_config_rule.iam_policy_no_admin_access.name
+    cloudtrail_enabled  = aws_config_config_rule.cloudtrail_enabled.name
+    vpc_sg_authorized   = aws_config_config_rule.vpc_sg_authorized_ports.name
   }
   description = "Map of AWS Config rule names for HIPAA compliance monitoring"
 }

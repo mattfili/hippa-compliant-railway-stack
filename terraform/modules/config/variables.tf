@@ -34,12 +34,6 @@ variable "sns_alert_email" {
   default     = ""
 }
 
-variable "enable_auto_remediation" {
-  type        = bool
-  description = "Enable automatic remediation for Config rule violations (disabled by default for safety)"
-  default     = false
-}
-
 variable "tags" {
   type        = map(string)
   description = "Additional resource tags to apply to all Config resources"

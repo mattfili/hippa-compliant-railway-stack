@@ -152,7 +152,7 @@ resource "aws_sns_topic_policy" "config_alerts" {
         Principal = {
           Service = "config.amazonaws.com"
         }
-        Action = "SNS:Publish"
+        Action   = "SNS:Publish"
         Resource = aws_sns_topic.config_alerts.arn
       }
     ]

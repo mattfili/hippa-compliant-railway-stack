@@ -17,10 +17,9 @@ func TestRDSSubnetGroupCreation(t *testing.T) {
 		TerraformDir: "../../modules/rds",
 		Vars: map[string]interface{}{
 			"environment":         "test",
-			"vpc_id":              "vpc-test123",
 			"private_subnet_ids":  []string{"subnet-test1", "subnet-test2", "subnet-test3"},
 			"security_group_id":   "sg-test123",
-			"kms_key_id": fmt.Sprintf("arn:aws:kms:us-east-1:%s:key/test", aws.GetAccountId(t)),
+			"kms_key_id":          fmt.Sprintf("arn:aws:kms:us-east-1:%s:key/test", aws.GetAccountId(t)),
 			"instance_class":      "db.t3.micro",
 			"allocated_storage":   20,
 			"multi_az":            false,
@@ -46,7 +45,6 @@ func TestRDSParameterGroupWithPgVector(t *testing.T) {
 		TerraformDir: "../../modules/rds",
 		Vars: map[string]interface{}{
 			"environment":         "test",
-			"vpc_id":              "vpc-test123",
 			"private_subnet_ids":  []string{"subnet-test1", "subnet-test2", "subnet-test3"},
 			"security_group_id":   "sg-test123",
 			"kms_key_id": fmt.Sprintf("arn:aws:kms:us-east-1:%s:key/test", aws.GetAccountId(t)),
@@ -73,7 +71,6 @@ func TestRDSInstanceCreation(t *testing.T) {
 		TerraformDir: "../../modules/rds",
 		Vars: map[string]interface{}{
 			"environment":         "test",
-			"vpc_id":              "vpc-test123",
 			"private_subnet_ids":  []string{"subnet-test1", "subnet-test2", "subnet-test3"},
 			"security_group_id":   "sg-test123",
 			"kms_key_id": fmt.Sprintf("arn:aws:kms:us-east-1:%s:key/test", aws.GetAccountId(t)),
@@ -100,7 +97,6 @@ func TestRDSInstanceEncryptionEnabled(t *testing.T) {
 		TerraformDir: "../../modules/rds",
 		Vars: map[string]interface{}{
 			"environment":         "test",
-			"vpc_id":              "vpc-test123",
 			"private_subnet_ids":  []string{"subnet-test1", "subnet-test2", "subnet-test3"},
 			"security_group_id":   "sg-test123",
 			"kms_key_id": fmt.Sprintf("arn:aws:kms:us-east-1:%s:key/test", aws.GetAccountId(t)),
@@ -127,7 +123,6 @@ func TestRDSBackupConfiguration(t *testing.T) {
 		TerraformDir: "../../modules/rds",
 		Vars: map[string]interface{}{
 			"environment":          "test",
-			"vpc_id":               "vpc-test123",
 			"private_subnet_ids":   []string{"subnet-test1", "subnet-test2", "subnet-test3"},
 			"security_group_id":    "sg-test123",
 			"kms_key_id": fmt.Sprintf("arn:aws:kms:us-east-1:%s:key/test", aws.GetAccountId(t)),
@@ -154,7 +149,6 @@ func TestRDSMultiAZConfiguration(t *testing.T) {
 		TerraformDir: "../../modules/rds",
 		Vars: map[string]interface{}{
 			"environment":         "staging",
-			"vpc_id":              "vpc-test123",
 			"private_subnet_ids":  []string{"subnet-test1", "subnet-test2", "subnet-test3"},
 			"security_group_id":   "sg-test123",
 			"kms_key_id": fmt.Sprintf("arn:aws:kms:us-east-1:%s:key/test", aws.GetAccountId(t)),
@@ -181,7 +175,6 @@ func TestRDSReadReplicaConditional(t *testing.T) {
 		TerraformDir: "../../modules/rds",
 		Vars: map[string]interface{}{
 			"environment":         "production",
-			"vpc_id":              "vpc-test123",
 			"private_subnet_ids":  []string{"subnet-test1", "subnet-test2", "subnet-test3"},
 			"security_group_id":   "sg-test123",
 			"kms_key_id": fmt.Sprintf("arn:aws:kms:us-east-1:%s:key/test", aws.GetAccountId(t)),
@@ -209,7 +202,6 @@ func TestRDSOutputsPopulated(t *testing.T) {
 		TerraformDir: "../../modules/rds",
 		Vars: map[string]interface{}{
 			"environment":         "test",
-			"vpc_id":              "vpc-test123",
 			"private_subnet_ids":  []string{"subnet-test1", "subnet-test2", "subnet-test3"},
 			"security_group_id":   "sg-test123",
 			"kms_key_id": fmt.Sprintf("arn:aws:kms:us-east-1:%s:key/test", aws.GetAccountId(t)),

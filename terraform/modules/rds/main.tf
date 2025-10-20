@@ -50,26 +50,26 @@ resource "aws_db_parameter_group" "main" {
   # Performance tuning parameters
   parameter {
     name         = "work_mem"
-    value        = "16384"  # 16MB for query operations
+    value        = "16384" # 16MB for query operations
     apply_method = "immediate"
   }
 
   parameter {
     name         = "maintenance_work_mem"
-    value        = "524288"  # 512MB for maintenance operations
+    value        = "524288" # 512MB for maintenance operations
     apply_method = "immediate"
   }
 
   parameter {
     name         = "effective_cache_size"
-    value        = "1048576"  # 1GB cache estimate
+    value        = "1048576" # 1GB cache estimate
     apply_method = "immediate"
   }
 
   # Enable query logging for debugging (can be disabled in production)
   parameter {
     name         = "log_min_duration_statement"
-    value        = "1000"  # Log queries taking more than 1 second
+    value        = "1000" # Log queries taking more than 1 second
     apply_method = "immediate"
   }
 
@@ -168,12 +168,12 @@ resource "aws_db_instance" "main" {
   allow_major_version_upgrade = false
 
   # Instance sizing
-  instance_class    = var.instance_class
-  allocated_storage = var.allocated_storage
+  instance_class        = var.instance_class
+  allocated_storage     = var.allocated_storage
   max_allocated_storage = var.max_allocated_storage
-  storage_type      = "gp3"
-  storage_encrypted = true
-  kms_key_id        = var.kms_key_id
+  storage_type          = "gp3"
+  storage_encrypted     = true
+  kms_key_id            = var.kms_key_id
 
   # Database configuration
   db_name  = var.db_name
@@ -199,9 +199,9 @@ resource "aws_db_instance" "main" {
   delete_automated_backups  = false
 
   # Maintenance configuration
-  maintenance_window      = var.maintenance_window
-  apply_immediately       = var.apply_immediately
-  deletion_protection     = var.deletion_protection
+  maintenance_window  = var.maintenance_window
+  apply_immediately   = var.apply_immediately
+  deletion_protection = var.deletion_protection
 
   # Monitoring and logging
   enabled_cloudwatch_logs_exports = var.enable_cloudwatch_logs ? var.cloudwatch_log_types : []
@@ -253,11 +253,11 @@ resource "aws_db_instance" "read_replica" {
   replicate_source_db = aws_db_instance.main.identifier
 
   # Instance sizing (can be different from primary)
-  instance_class        = var.instance_class
+  instance_class             = var.instance_class
   auto_minor_version_upgrade = var.auto_minor_version_upgrade
 
   # Storage configuration (inherited from primary but can be modified)
-  storage_type      = "gp3"
+  storage_type          = "gp3"
   max_allocated_storage = var.max_allocated_storage
 
   # Network configuration

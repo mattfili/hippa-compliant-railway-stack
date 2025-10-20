@@ -161,12 +161,6 @@ variable "sns_alert_email" {
   default     = ""
 }
 
-variable "enable_auto_remediation" {
-  type        = bool
-  description = "Enable automatic remediation for Config rule violations (disabled by default for safety)"
-  default     = false
-}
-
 # ------------------------------------------------------------------------------
 # Common Tags
 # ------------------------------------------------------------------------------

@@ -33,8 +33,7 @@ backup_retention_days = 30             # Full 30-day retention
 deletion_protection   = false          # Allow deletion for testing
 
 # AWS Config
-sns_alert_email         = ""  # Optional: Add email for Config alerts
-enable_auto_remediation = false
+sns_alert_email = ""  # Optional: Add email for Config alerts
 
 # Additional Tags
 tags = {
