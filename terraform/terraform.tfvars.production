@@ -1,0 +1,45 @@
+# ==============================================================================
+# Production Environment Configuration
+# ==============================================================================
+# High-availability settings for production environment with full redundancy
+# ==============================================================================
+
+# Environment
+environment = "production"
+aws_region  = "us-east-1"
+
+# VPC Configuration
+vpc_cidr            = "10.2.0.0/16"
+availability_zones  = ["us-east-1a", "us-east-1b", "us-east-1c"]
+enable_nat_gateway  = true
+enable_vpc_endpoints = true
+
+# Networking
+railway_ip_ranges = []  # Populate with Railway IP ranges from documentation
+
+# KMS
+enable_key_rotation = true
+
+# S3
+enable_lifecycle_policies = true
+documents_bucket_name     = ""  # Auto-generated name
+
+# RDS - Production Configuration (High Availability)
+rds_instance_class    = "db.r6g.xlarge"  # 4 vCPUs, 32GB RAM
+rds_allocated_storage = 100              # 100GB storage
+rds_multi_az          = true             # Multi-AZ for high availability
+enable_read_replica   = true             # Enable read replica for performance
+backup_retention_days = 30               # Full 30-day retention
+deletion_protection   = true             # Prevent accidental deletion
+
+# AWS Config
+sns_alert_email         = ""  # REQUIRED: Add email for production Config alerts
+enable_auto_remediation = false  # Keep disabled until thoroughly tested
+
+# Additional Tags
+tags = {
+  CostCenter      = "Production"
+  Owner           = "DevOps"
+  ComplianceLevel = "HIPAA"
+  DataClass       = "PHI"
+}
